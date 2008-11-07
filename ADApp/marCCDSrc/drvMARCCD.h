@@ -17,7 +17,6 @@ extern "C" {
 #endif
 
 int marCCDConfig(const char *portName, const char *marCCDPort,
-                 int maxSizeX, int maxSizeY,
                  int maxBuffers, size_t maxMemory);
 
 #ifdef __cplusplus
