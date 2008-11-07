@@ -6,19 +6,21 @@ marCCDApp_registerRecordDeviceDriver(pdbbase)
 
 ###
 # Create the asyn port to talk to the MAR on port 2222
-drvAsynIPPortConfigure("marServer","gse-marccd1.cars.aps.anl.gov:2222")
+drvAsynIPPortConfigure("marServer","gse-marccd2.cars.aps.anl.gov:2222")
 # Set the input and output terminators.
 asynOctetSetInputEos("marServer", 0, "\n")
 asynOctetSetOutputEos("marServer", 0, "\n")
+asynSetTraceMask("marServer",0,9)
+asynSetTraceIOMask("marServer",0,2)
 
-marCCDConfig("MAR", "marServer", 2048, 2048, 20, 200000000)
+marCCDConfig("MAR", "marServer", 20, 200000000)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",  "P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1")
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
 
 # Create a standard arrays plugin
 drvNDStdArraysConfigure("MARImage", 5, 0, "MAR", 0, -1)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,SIZE=32,FTVL=SHORT,NELEMENTS=1200000")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,SIZE=16,FTVL=SHORT,NELEMENTS=1200000")
 
 # Create an ROI plugin
 drvNDROIConfigure("MARROI", 5, 0, "MAR", 0, 10, -1)
@@ -57,8 +59,6 @@ dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:6:NetArray,DTYP=as
 dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:7:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 7)")
 
 
-asynSetTraceMask("marServer",0,9)
-asynSetTraceIOMask("marServer",0,2)
 #asynSetTraceMask("MARROI",0,3)
 #asynSetTraceIOMask("MARROI",0,4)
 
