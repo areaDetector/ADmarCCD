@@ -5,7 +5,7 @@
  * Author: Mark Rivers
  *         University of Chicago
  *
- * Created:  June 11, 2008
+ * Created:  Nov. 1, 2008
  *
  */
  
@@ -46,6 +46,8 @@
 /* Time between checking to see if TIFF file is complete */
 #define FILE_READ_DELAY .01
 #define MARCCD_POLL_DELAY .01
+/* Time between status polls when nothing is happening */
+#define MARCCD_POLL_INTERVAL 1.0
 #define READ_TIFF_TIMEOUT 10.0
 
 /* Task numbers */
@@ -123,10 +125,15 @@ public:
     void readoutFrame(int bufferNumber, const char* fileName, int wait);
     void setShutter(int open);
     void saveFile(int correctedFlag, int wait);
+    void getImageDataTask();
+    void getImageData();
    
     /* Our data */
     epicsEventId startEventId;
     epicsEventId stopEventId;
+    epicsEventId imageEventId;
+    epicsTimeStamp startTime;
+    epicsTimeStamp endTime;
     epicsTimerId timerId;
     char toServer[MAX_MESSAGE_SIZE];
     char fromServer[MAX_MESSAGE_SIZE];
@@ -166,13 +173,91 @@ static asynParamString_t marCCDParamString[] = {
 
 #define NUM_MARCCD_PARAMS (sizeof(marCCDParamString)/sizeof(marCCDParamString[0]))
 
+void getImageDataTaskC(marCCD *pmarCCD)
+{
+    pmarCCD->getImageDataTask();
+}
+
+void marCCD::getImageDataTask()
+{
+    int status;
+  
+    /* This task does the correction and file saving in the background, so that acquisition
+     * can be overlapped with these operations */  
+    while (1) {
+        status = epicsEventWaitWithTimeout(this->imageEventId, MARCCD_POLL_INTERVAL);
+        if (status != epicsEventWaitOK) {
+            /* We timed out, just read the state.
+             * We read the state periodically because with readFiles=No and overlap=Yes
+             * the state will never update to show the final idle state if we don't do this */
+            getState();
+            continue;
+        }
+        /* Wait for the correction complete */
+        status = getState();
+        while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
+            epicsThreadSleep(MARCCD_POLL_DELAY);
+            status = getState();
+        }
+
+        /* Wait for the write to complete */
+        status = getState();
+        while (TEST_TASK_STATUS(status, TASK_WRITE, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
+               TASK_STATE(status) >= 8) {
+            epicsThreadSleep(MARCCD_POLL_DELAY);
+            status = getState();
+        }
+        epicsMutexLock(this->mutexId);
+        getImageData();
+        epicsMutexUnlock(this->mutexId);
+    }
+}
+
+void marCCD::getImageData()
+{
+    char fullFileName[MAX_FILENAME_LEN];
+    int dims[2];
+    int imageCounter;
+    NDArray *pImage;
+    asynStatus status;
+    char statusMessage[MAX_MESSAGE_SIZE];
+    const char *functionName = "getImageData";
+
+    /* Inquire about the image dimensions */
+    getConfig();
+    getStringParam(ADFullFileName, MAX_FILENAME_LEN, fullFileName);
+    getIntegerParam(ADImageSizeX, &dims[0]);
+    getIntegerParam(ADImageSizeY, &dims[1]);
+    getIntegerParam(ADImageCounter, &imageCounter);
+    pImage = this->pNDArrayPool->alloc(2, dims, NDUInt16, 0, NULL);
+
+    epicsSnprintf(statusMessage, sizeof(statusMessage), "Reading TIFF file %s", fullFileName);
+    setStringParam(ADStatusMessage, statusMessage);
+    callParamCallbacks();
+    status = readTiff(fullFileName, pImage); 
+
+    /* Put the frame number and time stamp into the buffer */
+    pImage->uniqueId = imageCounter;
+    pImage->timeStamp = this->startTime.secPastEpoch + this->startTime.nsec / 1.e9;
+
+    /* Call the NDArray callback */
+    /* Must release the lock here, or we can get into a deadlock, because we can
+     * block on the plugin lock, and the plugin can be calling us */
+    epicsMutexUnlock(this->mutexId);
+    asynPrint(this->pasynUser, ASYN_TRACE_FLOW, 
+         "%s:%s: calling NDArray callback\n", driverName, functionName);
+    doCallbacksGenericPointer(pImage, NDArrayData, 0);
+    epicsMutexLock(this->mutexId);
+
+    /* Free the image buffer */
+    pImage->release();
+}
 
 /* This function reads TIFF files using libTiff.  It is not intended to be general,
  * it is intended to read the TIFF files that marCCDServer creates.  It checks to make sure
  * that the creation time of the file is after a start time passed to it, to force it to
  * wait for a new file to be created.
  */
- 
 asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
 {
     int fd=-1;
@@ -442,10 +527,6 @@ void marCCD::setShutter(int open)
     getDoubleParam(ADShutterCloseDelay, &shutterCloseDelay);
     
     switch (shutterMode) {
-        case ADShutterModeNone:
-            break;
-        case ADShutterModeEPICS:
-            break;
         case ADShutterModeDetector:
             if (open) {
                 /* Open the shutter */
@@ -463,6 +544,13 @@ void marCCD::setShutter(int open)
                 writeServer("shutter,0");
                 epicsThreadSleep(shutterCloseDelay);
             }
+            /* The marCCD does not provide a way to read the actual shutter status, so
+             * set it to agree with the control value */
+            setIntegerParam(ADShutterStatus, open);
+            callParamCallbacks();
+            break;
+        default:
+            ADDriver::setShutter(open);
             break;
     }
 }
@@ -621,7 +709,7 @@ void marCCD::marCCDTask()
     int numImages, numImagesCounter;
     int imageMode;
     int acquire;
-    NDArray *pImage;
+    int readFiles;
     double acquireTime;
     double acquirePeriod;
     int frameType;
@@ -629,12 +717,9 @@ void marCCD::marCCDTask()
     int overlap, wait;
     int bufferNumber;
     int shutterMode, useShutter;
-    epicsTimeStamp startTime, endTime;
     double elapsedTime, delayTime;
     const char *functionName = "marCCDTask";
     char fullFileName[MAX_FILENAME_LEN];
-    char statusMessage[MAX_MESSAGE_SIZE];
-    int dims[2];
 
     epicsMutexLock(this->mutexId);
 
@@ -658,22 +743,23 @@ void marCCD::marCCDTask()
             callParamCallbacks();
         }
         
-        /* What to do here depends on the frame type */
+        /* Get current values of some parameters */
         getIntegerParam(ADFrameType, &frameType);
         getDoubleParam(ADAcquireTime, &acquireTime);
         getIntegerParam(ADAutoSave, &autoSave);
         getIntegerParam(marCCDOverlap, &overlap);
         getIntegerParam(ADShutterMode, &shutterMode);
+        getIntegerParam(marCCDReadFiles, &readFiles);
         if (overlap) wait=0; else wait=1;
         if (shutterMode == ADShutterModeNone) useShutter=0; else useShutter=1;
         
-        strcpy(fullFileName, "");
-        if (autoSave) createFileName(MAX_FILENAME_LEN, fullFileName);
-        epicsTimeGetCurrent(&startTime);
+        epicsTimeGetCurrent(&this->startTime);
         
         switch(frameType) {
             case marCCDFrameNormal:
             case marCCDFrameRaw:
+                strcpy(fullFileName, "");
+                if (autoSave) createFileName(MAX_FILENAME_LEN, fullFileName);
                 acquireFrame(acquireTime, useShutter);
                 if (frameType == marCCDFrameNormal) bufferNumber=0; else bufferNumber=3;
                 readoutFrame(bufferNumber, fullFileName, wait);
@@ -716,17 +802,6 @@ void marCCD::marCCDTask()
                 if (autoSave) saveFile(1, 1);
         }
         
-        /* Inquire about the image dimensions */
-        getConfig();
-        getIntegerParam(ADImageSizeX, &dims[0]);
-        getIntegerParam(ADImageSizeY, &dims[1]);
-        pImage = this->pNDArrayPool->alloc(2, dims, NDUInt16, 0, NULL);
-
-        epicsSnprintf(statusMessage, sizeof(statusMessage), "Reading TIFF file %s", fullFileName);
-        setStringParam(ADStatusMessage, statusMessage);
-        callParamCallbacks();
-        status = readTiff(fullFileName, pImage); 
-
         getIntegerParam(ADImageCounter, &imageCounter);
         imageCounter++;
         setIntegerParam(ADImageCounter, imageCounter);
@@ -736,18 +811,11 @@ void marCCD::marCCDTask()
         /* Call the callbacks to update any changes */
         callParamCallbacks();
 
-        /* Put the frame number and time stamp into the buffer */
-        pImage->uniqueId = imageCounter;
-        pImage->timeStamp = startTime.secPastEpoch + startTime.nsec / 1.e9;
-
-        /* Call the NDArray callback */
-        /* Must release the lock here, or we can get into a deadlock, because we can
-         * block on the plugin lock, and the plugin can be calling us */
-        epicsMutexUnlock(this->mutexId);
-        asynPrint(this->pasynUser, ASYN_TRACE_FLOW, 
-             "%s:%s: calling NDArray callback\n", driverName, functionName);
-        doCallbacksGenericPointer(pImage, NDArrayData, 0);
-        epicsMutexLock(this->mutexId);
+        /* If we saved a file above and readFiles is set then read the file back in */
+        if (autoSave && readFiles && (frameType != marCCDFrameBackground)) {
+            if (overlap) epicsEventSignal(this->imageEventId);
+            else getImageData();
+        }
 
         getIntegerParam(ADImageMode, &imageMode);
         if (imageMode == ADImageMultiple) {
@@ -759,8 +827,8 @@ void marCCD::marCCDTask()
         if (acquire) {
             /* We are in continuous or multiple mode.
              * Sleep until the acquire period expires or acquire is set to stop */
-            epicsTimeGetCurrent(&endTime);
-            elapsedTime = epicsTimeDiffInSeconds(&endTime, &startTime);
+            epicsTimeGetCurrent(&this->endTime);
+            elapsedTime = epicsTimeDiffInSeconds(&this->endTime, &this->startTime);
             getDoubleParam(ADAcquirePeriod, &acquirePeriod);
             delayTime = acquirePeriod - elapsedTime;
             if (delayTime > 0.) {
@@ -769,9 +837,6 @@ void marCCD::marCCDTask()
                 epicsMutexLock(this->mutexId);
             }
         }
-
-        /* Free the image buffer */
-        pImage->release();
 
         /* Call the callbacks to update any changes */
         callParamCallbacks();
@@ -783,12 +848,11 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     int state, binX, binY;
-    int addr=0;
     int correctedFlag, frameType;
     asynStatus status = asynSuccess;
     const char *functionName = "writeInt32";
 
-    status = setIntegerParam(addr, function, value);
+    status = setIntegerParam(function, value);
 
     switch (function) {
     case ADAcquire:
@@ -805,22 +869,28 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     case ADBinX:
     case ADBinY:
         /* Set binning */
-        getIntegerParam(addr, ADBinX, &binX);
-        getIntegerParam(addr, ADBinY, &binY);
+        getIntegerParam(ADBinX, &binX);
+        getIntegerParam(ADBinY, &binY);
         epicsSnprintf(this->toServer, sizeof(this->toServer), "set_bin,%d,%d", binX, binY);
         writeServer(this->toServer);
         /* Note, we cannot read back the actual binning values from marCCDServer here because the
          * server only updates them when the next image is collected */
         break;
-    
     case ADWriteFile:
-        getIntegerParam(addr, ADFrameType, &frameType);
+        getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
         saveFile(correctedFlag, 1);
+        break;
+    case ADShutterControl:
+        setShutter(value);
+        break;
+    default:
+        status = ADDriver::writeInt32(pasynUser, value);
+        break;
     }
         
     /* Do callbacks so higher layers see any changes */
-    callParamCallbacks(addr, addr);
+    callParamCallbacks();
     
     if (status) 
         asynPrint(pasynUser, ASYN_TRACE_ERROR, 
@@ -869,16 +939,12 @@ asynStatus marCCD::drvUserCreate(asynUser *pasynUser,
     
 void marCCD::report(FILE *fp, int details)
 {
-    int addr=0;
-
     fprintf(fp, "MAR-CCD detector %s\n", this->portName);
     if (details > 0) {
-        int nx, ny, dataType;
-        getIntegerParam(addr, ADSizeX, &nx);
-        getIntegerParam(addr, ADSizeY, &ny);
-        getIntegerParam(addr, ADDataType, &dataType);
+        int nx, ny;
+        getIntegerParam(ADSizeX, &nx);
+        getIntegerParam(ADSizeY, &ny);
         fprintf(fp, "  NX, NY:            %d  %d\n", nx, ny);
-        fprintf(fp, "  Data type:         %d\n", dataType);
     }
     /* Invoke the base class method */
     ADDriver::report(fp, details);
@@ -901,7 +967,6 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     int status = asynSuccess;
     epicsTimerQueueId timerQ;
     const char *functionName = "marCCD";
-    int addr=0;
     int dims[2];
 
     /* Create the epicsEvents for signaling to the marCCD task when acquisition starts and stops */
@@ -914,6 +979,12 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     this->stopEventId = epicsEventCreate(epicsEventEmpty);
     if (!this->stopEventId) {
         printf("%s:%s epicsEventCreate failure for stop event\n", 
+            driverName, functionName);
+        return;
+    }
+    this->imageEventId = epicsEventCreate(epicsEventEmpty);
+    if (!this->imageEventId) {
+        printf("%s:%s epicsEventCreate failure for image event\n", 
             driverName, functionName);
         return;
     }
@@ -938,29 +1009,40 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     this->pData = this->pNDArrayPool->alloc(2, dims, NDInt16, 0, NULL);
 
     /* Set some default values for parameters */
-    status =  setStringParam (addr, ADManufacturer, "MAR");
-    status |= setStringParam (addr, ADModel, "CCD");
-    status |= setIntegerParam(addr, ADDataType,  NDInt16);
-    status |= setIntegerParam(addr, ADImageMode, ADImageSingle);
-    status |= setIntegerParam(addr, ADTriggerMode, TMInternal);
-    status |= setDoubleParam (addr, ADAcquireTime, 1.);
-    status |= setDoubleParam (addr, ADAcquirePeriod, 0.);
-    status |= setIntegerParam(addr, ADNumImages, 1);
-    status |= setIntegerParam(addr, marCCDOverlap, 0);
-    status |= setIntegerParam(addr, marCCDReadFiles, 1);
+    status =  setStringParam (ADManufacturer, "MAR");
+    status |= setStringParam (ADModel, "CCD");
+    status |= setIntegerParam(ADDataType,  NDInt16);
+    status |= setIntegerParam(ADImageMode, ADImageSingle);
+    status |= setIntegerParam(ADTriggerMode, TMInternal);
+    status |= setDoubleParam (ADAcquireTime, 1.);
+    status |= setDoubleParam (ADAcquirePeriod, 0.);
+    status |= setIntegerParam(ADNumImages, 1);
+    status |= setIntegerParam(marCCDOverlap, 0);
+    status |= setIntegerParam(marCCDReadFiles, 1);
 
-    status |= setDoubleParam (addr, marCCDTiffTimeout, 20.);
+    status |= setDoubleParam (marCCDTiffTimeout, 20.);
        
     if (status) {
         printf("%s: unable to set camera parameters\n", functionName);
         return;
     }
     
-    /* Create the thread that updates the images */
+    /* Create the thread that collects the data */
     status = (epicsThreadCreate("marCCDTask",
                                 epicsThreadPriorityMedium,
                                 epicsThreadGetStackSize(epicsThreadStackMedium),
                                 (EPICSTHREADFUNC)marCCDTaskC,
+                                this) == NULL);
+    if (status) {
+        printf("%s:%s epicsThreadCreate failure for data collection task\n", 
+            driverName, functionName);
+        return;
+    }
+    /* Create the thread that collects the data */
+    status = (epicsThreadCreate("marCCDImageTask",
+                                epicsThreadPriorityMedium,
+                                epicsThreadGetStackSize(epicsThreadStackMedium),
+                                (EPICSTHREADFUNC)getImageDataTaskC,
                                 this) == NULL);
     if (status) {
         printf("%s:%s epicsThreadCreate failure for image task\n", 
