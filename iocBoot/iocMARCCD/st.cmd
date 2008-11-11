@@ -10,7 +10,7 @@ drvAsynIPPortConfigure("marServer","gse-marccd1.cars.aps.anl.gov:2222")
 # Set the input and output terminators.
 asynOctetSetInputEos("marServer", 0, "\n")
 asynOctetSetOutputEos("marServer", 0, "\n")
-asynSetTraceMask("marServer",0,9)
+#asynSetTraceMask("marServer",0,9)
 asynSetTraceIOMask("marServer",0,2)
 
 marCCDConfig("MAR", "marServer", 20, 200000000)
