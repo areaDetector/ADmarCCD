@@ -6,7 +6,7 @@ marCCDApp_registerRecordDeviceDriver(pdbbase)
 
 ###
 # Create the asyn port to talk to the MAR on port 2222
-drvAsynIPPortConfigure("marServer","gse-marccd2.cars.aps.anl.gov:2222")
+drvAsynIPPortConfigure("marServer","gse-marccd1.cars.aps.anl.gov:2222")
 # Set the input and output terminators.
 asynOctetSetInputEos("marServer", 0, "\n")
 asynOctetSetOutputEos("marServer", 0, "\n")
