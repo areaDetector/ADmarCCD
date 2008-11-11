@@ -119,6 +119,7 @@ public:
     asynStatus writeServer(const char *output);
     asynStatus readServer(char *input, size_t maxChars, double timeout);
     asynStatus writeReadServer(const char *output, char *input, size_t maxChars, double timeout);
+    asynStatus writeHeader();
     int getState();
     asynStatus getConfig();
     void acquireFrame(double exposureTime, int useShutter);
@@ -146,7 +147,6 @@ public:
 typedef enum {
     marCCDTiffTimeout
         = ADFirstDriverParam,
-    marCCDReadFiles,
     marCCDOverlap,
     marCCDState,
     marCCDStatus,
@@ -155,12 +155,21 @@ typedef enum {
     marCCDTaskCorrectStatus,
     marCCDTaskWritingStatus,
     marCCDTaskDezingerStatus,
+    marCCDFrameShift,
+    marCCDDetectorDistance,
+    marCCDBeamX,
+    marCCDBeamY,
+    marCCDStartPhi,
+    marCCDRotationAxis,
+    marCCDRotationRange,
+    marCCDWavelength,
+    marCCDFileComments,
+    marCCDDatasetComments,
     ADLastDriverParam
 } marCCDParam_t;
 
 static asynParamString_t marCCDParamString[] = {
     {marCCDTiffTimeout,        "MAR_TIFF_TIMEOUT"},
-    {marCCDReadFiles,          "MAR_READ_FILES"},
     {marCCDOverlap,            "MAR_OVERLAP"},
     {marCCDState,              "MAR_STATE"},
     {marCCDStatus,             "MAR_STATUS"},
@@ -169,6 +178,16 @@ static asynParamString_t marCCDParamString[] = {
     {marCCDTaskCorrectStatus,  "MAR_CORRECT_STATUS"},
     {marCCDTaskWritingStatus,  "MAR_WRITING_STATUS"},
     {marCCDTaskDezingerStatus, "MAR_DEZINGER_STATUS"},
+    {marCCDFrameShift,         "MAR_FRAME_SHIFT"},
+    {marCCDDetectorDistance,   "MAR_DETECTOR_DISTANCE"},
+    {marCCDBeamX,              "MAR_BEAM_X"},
+    {marCCDBeamY,              "MAR_BEAM_Y"},
+    {marCCDStartPhi,           "MAR_START_PHI"},
+    {marCCDRotationAxis,       "MAR_ROTATION_AXIS"},
+    {marCCDRotationRange,      "MAR_ROTATION_RANGE"},
+    {marCCDWavelength,         "MAR_WAVELENGTH"},
+    {marCCDFileComments,       "MAR_FILE_COMMENTS"},
+    {marCCDDatasetComments,    "MAR_DATASET_COMMENTS"},
 };
 
 #define NUM_MARCCD_PARAMS (sizeof(marCCDParamString)/sizeof(marCCDParamString[0]))
@@ -188,7 +207,7 @@ void marCCD::getImageDataTask()
         status = epicsEventWaitWithTimeout(this->imageEventId, MARCCD_POLL_INTERVAL);
         if (status != epicsEventWaitOK) {
             /* We timed out, just read the state.
-             * We read the state periodically because with readFiles=No and overlap=Yes
+             * We read the state periodically because with ArrayCallbacks=Disable and overlap=Yes
              * the state will never update to show the final idle state if we don't do this */
             getState();
             continue;
@@ -445,6 +464,49 @@ asynStatus marCCD::writeReadServer(const char *output, char *input, size_t maxCh
     return status;
 }
 
+asynStatus marCCD::writeHeader()
+{
+    asynStatus status;
+    double detectorDistance, beamX, beamY, exposureTime, startPhi, rotationRange, wavelength;
+    char rotationAxis[MAX_MESSAGE_SIZE], fileComments[MAX_MESSAGE_SIZE], datasetComments[MAX_MESSAGE_SIZE];
+    
+    getDoubleParam(marCCDDetectorDistance, &detectorDistance);
+    getDoubleParam(marCCDBeamX, &beamX);
+    getDoubleParam(marCCDBeamY, &beamY);
+    getDoubleParam(ADAcquireTime, &exposureTime);
+    getDoubleParam(marCCDStartPhi, &startPhi);
+    getDoubleParam(marCCDRotationRange, &rotationRange);
+    getDoubleParam(marCCDWavelength, &wavelength);
+    getStringParam(marCCDRotationAxis, sizeof(rotationAxis), rotationAxis);
+    getStringParam(marCCDFileComments, sizeof(fileComments), fileComments);
+    getStringParam(marCCDDatasetComments, sizeof(datasetComments), datasetComments);
+    
+    epicsSnprintf(this->toServer, sizeof(this->toServer),
+                  "header,"
+                  "detector_distance=%f,"
+                  "beam_x=%f,"
+                  "beam_y=%f,"
+                  "exposure_time=%f,"
+                  "start_phi=%f,"
+                  "rotation_axis=%s,"
+                  "rotation_range=%f,"
+                  "source_wavelength=%f,"
+                  "file_comments=%s,"
+                  "dataset_comments=%s",
+                  detectorDistance,
+                  beamX,
+                  beamY,
+                  exposureTime,
+                  startPhi,
+                  rotationAxis,
+                  rotationRange,
+                  wavelength,
+                  fileComments,
+                  datasetComments);
+    status = writeServer(this->toServer);
+    return status;
+}
+
 int marCCD::getState()
 {
     int marState;
@@ -487,7 +549,7 @@ int marCCD::getState()
 
 asynStatus marCCD::getConfig()
 {
-    int sizeX, sizeY, binX, binY, imageSize;
+    int sizeX, sizeY, binX, binY, imageSize, frameShift;
     asynStatus status;
     
     status = writeReadServer("get_size", this->fromServer, sizeof(this->fromServer), MARCCD_DEFAULT_TIMEOUT);
@@ -504,6 +566,13 @@ asynStatus marCCD::getConfig()
     setIntegerParam(ADMaxSizeY, sizeY*binY);
     imageSize = sizeX * sizeY * sizeof(epicsInt16);
     setIntegerParam(ADImageSize, imageSize);
+/*
+    status = writeReadServer("get_frameshift", this->fromServer, sizeof(this->fromServer),
+                              MARCCD_DEFAULT_TIMEOUT);
+    sscanf(this->fromServer, "%d", &frameShift);
+*/
+    frameShift=0;  /* Force for now, can't read it */
+    setIntegerParam(marCCDFrameShift, frameShift);
     callParamCallbacks();
     return(asynSuccess);
 }
@@ -678,6 +747,7 @@ void marCCD::saveFile(int correctedFlag, int wait)
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
     }
+    writeHeader();
     createFileName(MAX_FILENAME_LEN, fullFileName);
     epicsSnprintf(this->toServer, sizeof(this->toServer), "writefile,%s,%d", 
                   fullFileName, correctedFlag);
@@ -709,7 +779,7 @@ void marCCD::marCCDTask()
     int numImages, numImagesCounter;
     int imageMode;
     int acquire;
-    int readFiles;
+    int arrayCallbacks;
     double acquireTime;
     double acquirePeriod;
     int frameType;
@@ -749,9 +819,10 @@ void marCCD::marCCDTask()
         getIntegerParam(ADAutoSave, &autoSave);
         getIntegerParam(marCCDOverlap, &overlap);
         getIntegerParam(ADShutterMode, &shutterMode);
-        getIntegerParam(marCCDReadFiles, &readFiles);
+        getIntegerParam(ADArrayCallbacks, &arrayCallbacks);
         if (overlap) wait=0; else wait=1;
         if (shutterMode == ADShutterModeNone) useShutter=0; else useShutter=1;
+        if (autoSave) writeHeader();
         
         epicsTimeGetCurrent(&this->startTime);
         
@@ -811,8 +882,8 @@ void marCCD::marCCDTask()
         /* Call the callbacks to update any changes */
         callParamCallbacks();
 
-        /* If we saved a file above and readFiles is set then read the file back in */
-        if (autoSave && readFiles && (frameType != marCCDFrameBackground)) {
+        /* If we saved a file above and arrayCallbacks is set then read the file back in */
+        if (autoSave && arrayCallbacks && (frameType != marCCDFrameBackground)) {
             if (overlap) epicsEventSignal(this->imageEventId);
             else getImageData();
         }
@@ -820,7 +891,7 @@ void marCCD::marCCDTask()
         getIntegerParam(ADImageMode, &imageMode);
         if (imageMode == ADImageMultiple) {
             getIntegerParam(ADNumImages, &numImages);
-            if (numImagesCounter == numImages) setIntegerParam(ADAcquire, 0);
+            if (numImagesCounter >= numImages) setIntegerParam(ADAcquire, 0);
         }    
         if (imageMode == ADImageSingle) setIntegerParam(ADAcquire, 0);
         getIntegerParam(ADAcquire, &acquire);
@@ -832,6 +903,8 @@ void marCCD::marCCDTask()
             getDoubleParam(ADAcquirePeriod, &acquirePeriod);
             delayTime = acquirePeriod - elapsedTime;
             if (delayTime > 0.) {
+                setIntegerParam(ADStatus, ADStatusWaiting);
+                callParamCallbacks();
                 epicsMutexUnlock(this->mutexId);
                 status = epicsEventWaitWithTimeout(this->stopEventId, delayTime);
                 epicsMutexLock(this->mutexId);
@@ -876,6 +949,13 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
         /* Note, we cannot read back the actual binning values from marCCDServer here because the
          * server only updates them when the next image is collected */
         break;
+/*
+    case marCCDFrameShift:
+         epicsSnprintf(this->toServer, sizeof(this->toServer), "set_frameshift,%d", value);
+         writeServer(this->toServer);
+         getConfig();
+         break;       
+*/
     case ADWriteFile:
         getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
@@ -1018,7 +1098,6 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     status |= setDoubleParam (ADAcquirePeriod, 0.);
     status |= setIntegerParam(ADNumImages, 1);
     status |= setIntegerParam(marCCDOverlap, 0);
-    status |= setIntegerParam(marCCDReadFiles, 1);
 
     status |= setDoubleParam (marCCDTiffTimeout, 20.);
        
