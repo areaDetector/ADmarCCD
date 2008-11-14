@@ -42,12 +42,10 @@
 
 #define MAX_MESSAGE_SIZE 256 /* Messages to/from server */
 #define MAX_FILENAME_LEN 256
-#define MARCCD_DEFAULT_TIMEOUT 1.0 
+#define MARCCD_SERVER_TIMEOUT 1.0 
 /* Time between checking to see if TIFF file is complete */
 #define FILE_READ_DELAY .01
 #define MARCCD_POLL_DELAY .01
-/* Time between status polls when nothing is happening */
-#define MARCCD_POLL_INTERVAL 1.0
 #define READ_TIFF_TIMEOUT 10.0
 
 /* Task numbers */
@@ -155,6 +153,7 @@ typedef enum {
     marCCDTaskCorrectStatus,
     marCCDTaskWritingStatus,
     marCCDTaskDezingerStatus,
+    marCCDReadStatus,
     marCCDFrameShift,
     marCCDDetectorDistance,
     marCCDBeamX,
@@ -178,6 +177,7 @@ static asynParamString_t marCCDParamString[] = {
     {marCCDTaskCorrectStatus,  "MAR_CORRECT_STATUS"},
     {marCCDTaskWritingStatus,  "MAR_WRITING_STATUS"},
     {marCCDTaskDezingerStatus, "MAR_DEZINGER_STATUS"},
+    {marCCDReadStatus,         "MAR_READ_STATUS"},
     {marCCDFrameShift,         "MAR_FRAME_SHIFT"},
     {marCCDDetectorDistance,   "MAR_DETECTOR_DISTANCE"},
     {marCCDBeamX,              "MAR_BEAM_X"},
@@ -204,15 +204,8 @@ void marCCD::getImageDataTask()
     /* This task does the correction and file saving in the background, so that acquisition
      * can be overlapped with these operations */  
     while (1) {
-        status = epicsEventWaitWithTimeout(this->imageEventId, MARCCD_POLL_INTERVAL);
-        if (status != epicsEventWaitOK) {
-            /* We timed out, just read the state.
-             * We read the state periodically because with ArrayCallbacks=Disable and overlap=Yes
-             * the state will never update to show the final idle state if we don't do this */
-            getState();
-            continue;
-        }
-        /* Wait for the correction complete */
+        status = epicsEventWait(this->imageEventId);
+        /* Wait for the correction to complete */
         status = getState();
         while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
             epicsThreadSleep(MARCCD_POLL_DELAY);
@@ -420,7 +413,7 @@ asynStatus marCCD::writeServer(const char *output)
     /* Flush any stale input, since the next operation is likely to be a read */
     status = pasynOctetSyncIO->flush(pasynUser);
     status = pasynOctetSyncIO->write(pasynUser, output,
-                                     strlen(output), MARCCD_DEFAULT_TIMEOUT,
+                                     strlen(output), MARCCD_SERVER_TIMEOUT,
                                      &nwrite);
                                         
     if (status) asynPrint(pasynUser, ASYN_TRACE_ERROR,
@@ -516,7 +509,7 @@ int marCCD::getState()
     int acquireStatus, readoutStatus, correctStatus, writingStatus, dezingerStatus;
     
     status = writeReadServer("get_state", this->fromServer, sizeof(this->fromServer),
-                              MARCCD_DEFAULT_TIMEOUT);
+                              MARCCD_SERVER_TIMEOUT);
     if (status) return(adStatus);
     marState = strtol(this->fromServer, NULL, 0);
     marStatus = TASK_STATE(marState);
@@ -552,12 +545,12 @@ asynStatus marCCD::getConfig()
     int sizeX, sizeY, binX, binY, imageSize, frameShift;
     asynStatus status;
     
-    status = writeReadServer("get_size", this->fromServer, sizeof(this->fromServer), MARCCD_DEFAULT_TIMEOUT);
+    status = writeReadServer("get_size", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
     if (status) return(status);
     sscanf(this->fromServer, "%d,%d", &sizeX, &sizeY);
     setIntegerParam(ADImageSizeX, sizeX);
     setIntegerParam(ADImageSizeY, sizeY);
-    status = writeReadServer("get_bin", this->fromServer, sizeof(this->fromServer), MARCCD_DEFAULT_TIMEOUT);
+    status = writeReadServer("get_bin", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
     if (status) return(status);
     sscanf(this->fromServer, "%d,%d", &binX, &binY);
     setIntegerParam(ADBinX, binX);
@@ -568,7 +561,7 @@ asynStatus marCCD::getConfig()
     setIntegerParam(ADImageSize, imageSize);
 /*
     status = writeReadServer("get_frameshift", this->fromServer, sizeof(this->fromServer),
-                              MARCCD_DEFAULT_TIMEOUT);
+                              MARCCD_SERVER_TIMEOUT);
     sscanf(this->fromServer, "%d", &frameShift);
 */
     frameShift=0;  /* Force for now, can't read it */
@@ -956,6 +949,9 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
          getConfig();
          break;       
 */
+    case marCCDReadStatus:
+        if (value) getState();
+        break;
     case ADWriteFile:
         getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
