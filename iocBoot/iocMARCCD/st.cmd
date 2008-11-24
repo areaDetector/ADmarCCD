@@ -6,7 +6,7 @@ marCCDApp_registerRecordDeviceDriver(pdbbase)
 
 ###
 # Create the asyn port to talk to the MAR on port 2222
-drvAsynIPPortConfigure("marServer","gse-marccd2.cars.aps.anl.gov:2222")
+drvAsynIPPortConfigure("marServer","gse-marccd1.cars.aps.anl.gov:2222")
 # Set the input and output terminators.
 asynOctetSetInputEos("marServer", 0, "\n")
 asynOctetSetOutputEos("marServer", 0, "\n")
@@ -63,8 +63,8 @@ dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:7:NetArray,DTYP=as
 #asynSetTraceMask("MARROI",0,3)
 #asynSetTraceIOMask("MARROI",0,4)
 
-# Load scan records for scanning energy threshold
-dbLoadRecords("$(SSCAN)/sscanApp/Db/scan.db", "P=13MARCCD1:cam1:,MAXPTS1=2000,MAXPTS2=200,MAXPTS3=20,MAXPTS4=10,MAXPTSH=10")
+# Load scan records
+dbLoadRecords("$(SSCAN)/sscanApp/Db/scan.db", "P=13MARCCD1:,MAXPTS1=2000,MAXPTS2=200,MAXPTS3=20,MAXPTS4=10,MAXPTSH=10")
 
 set_requestfile_path("./")
 set_savefile_path("./autosave")
