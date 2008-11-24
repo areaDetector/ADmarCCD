@@ -46,7 +46,6 @@
 /* Time between checking to see if TIFF file is complete */
 #define FILE_READ_DELAY .01
 #define MARCCD_POLL_DELAY .01
-#define READ_TIFF_TIMEOUT 10.0
 
 /* Task numbers */
 #define TASK_ACQUIRE		0
@@ -285,8 +284,9 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
     char *buffer;
     TIFF *tiff=NULL;
     epicsUInt32 uval;
-    double timeout = READ_TIFF_TIMEOUT;
+    double timeout;
 
+    getDoubleParam(marCCDTiffTimeout, &timeout);
     deltaTime = 0.;
     epicsTimeGetCurrent(&tStart);
     epicsTimeToTime_t(&startTime, &tStart);
@@ -559,12 +559,9 @@ asynStatus marCCD::getConfig()
     setIntegerParam(ADMaxSizeY, sizeY*binY);
     imageSize = sizeX * sizeY * sizeof(epicsInt16);
     setIntegerParam(ADImageSize, imageSize);
-/*
     status = writeReadServer("get_frameshift", this->fromServer, sizeof(this->fromServer),
                               MARCCD_SERVER_TIMEOUT);
     sscanf(this->fromServer, "%d", &frameShift);
-*/
-    frameShift=0;  /* Force for now, can't read it */
     setIntegerParam(marCCDFrameShift, frameShift);
     callParamCallbacks();
     return(asynSuccess);
@@ -942,13 +939,11 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
         /* Note, we cannot read back the actual binning values from marCCDServer here because the
          * server only updates them when the next image is collected */
         break;
-/*
     case marCCDFrameShift:
          epicsSnprintf(this->toServer, sizeof(this->toServer), "set_frameshift,%d", value);
          writeServer(this->toServer);
          getConfig();
          break;       
-*/
     case marCCDReadStatus:
         if (value) getState();
         break;
