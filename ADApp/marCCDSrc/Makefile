@@ -10,9 +10,9 @@ include $(TOP)/configure/CONFIG
 # We only build on Linux and Solaris.  If your architecture has
 # libtiff, libjpeg, and libz you can add it here.
 LIBRARY_IOC_Linux = marCCD
-LIBRARY_IOC_Solaris = marCCD
+LIBRARY_IOC_solaris = marCCD
 PROD_IOC_Linux += marCCDApp
-PROD_IOC_Solaris += marCCDApp
+PROD_IOC_solaris += marCCDApp
 
 LIB_SRCS += marCCD.cpp
 LIB_SRCS += drvMARCCDEpics.c
