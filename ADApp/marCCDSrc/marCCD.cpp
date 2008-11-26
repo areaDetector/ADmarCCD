@@ -130,8 +130,8 @@ public:
     epicsEventId startEventId;
     epicsEventId stopEventId;
     epicsEventId imageEventId;
-    epicsTimeStamp startTime;
-    epicsTimeStamp endTime;
+    epicsTimeStamp acqStartTime;
+    epicsTimeStamp acqEndTime;
     epicsTimerId timerId;
     char toServer[MAX_MESSAGE_SIZE];
     char fromServer[MAX_MESSAGE_SIZE];
@@ -249,13 +249,13 @@ void marCCD::getImageData()
 
     /* Put the frame number and time stamp into the buffer */
     pImage->uniqueId = imageCounter;
-    pImage->timeStamp = this->startTime.secPastEpoch + this->startTime.nsec / 1.e9;
+    pImage->timeStamp = this->acqStartTime.secPastEpoch + this->acqStartTime.nsec / 1.e9;
 
     /* Call the NDArray callback */
     /* Must release the lock here, or we can get into a deadlock, because we can
      * block on the plugin lock, and the plugin can be calling us */
     epicsMutexUnlock(this->mutexId);
-    asynPrint(this->pasynUser, ASYN_TRACE_FLOW, 
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, 
          "%s:%s: calling NDArray callback\n", driverName, functionName);
     doCallbacksGenericPointer(pImage, NDArrayData, 0);
     epicsMutexLock(this->mutexId);
@@ -303,7 +303,7 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
              * We don't do this check if timeout==0, which is used for reading flat field files */
             status = fstat(fd, &statBuff);
             if (status){
-                asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                     "%s::%s error calling fstat, errno=%d %s\n",
                     driverName, functionName, errno, fileName);
                 close(fd);
@@ -324,11 +324,11 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         deltaTime = epicsTimeDiffInSeconds(&tCheck, &tStart);
     }
     if (fd < 0) {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
             "%s::%s timeout waiting for file to be created %s\n",
             driverName, functionName, fileName);
         if (fileExists) {
-            asynPrint(pasynUser, ASYN_TRACE_ERROR,
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                 "  file exists but is more than 10 seconds old, possible clock synchronization problem\n");
         } 
         return(asynError);
@@ -348,14 +348,14 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         /* Do some basic checking that the image size is what we expect */
         status = TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &uval);
         if (uval != (epicsUInt32)pImage->dims[0].size) {
-            asynPrint(pasynUser, ASYN_TRACE_ERROR,
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                 "%s::%s, image width incorrect =%u, should be %d\n",
                 driverName, functionName, uval, pImage->dims[0].size);
             goto retry;
         }
         status = TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &uval);
         if (uval != (epicsUInt32)pImage->dims[1].size) {
-            asynPrint(pasynUser, ASYN_TRACE_ERROR,
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                 "%s::%s, image length incorrect =%u, should be %d\n",
                 driverName, functionName, uval, pImage->dims[1].size);
             goto retry;
@@ -368,7 +368,7 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
             if (size == -1) {
                 /* There was an error reading the file.  Most commonly this is because the file
                  * was not yet completely written.  Try again. */
-                asynPrint(pasynUser, ASYN_TRACE_FLOW,
+                asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
                     "%s::%s, error reading TIFF file %s\n",
                     driverName, functionName, fileName);
                 goto retry;
@@ -378,7 +378,7 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         }
         if (totalSize > pImage->dataSize) {
             status = asynError;
-            asynPrint(pasynUser, ASYN_TRACE_ERROR,
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
                 "%s::%s, file size too large =%d, must be <= %d\n",
                 driverName, functionName, totalSize, pImage->dataSize);
             goto retry;
@@ -568,12 +568,12 @@ asynStatus marCCD::getConfig()
 }
 
 /* This function is called when the exposure time timer expires */
-static void timerCallbackC(void *drvPvt)
+extern "C" {static void timerCallbackC(void *drvPvt)
 {
     marCCD *pPvt = (marCCD *)drvPvt;
     
    epicsEventSignal(pPvt->stopEventId);
-}
+}}
 
 void marCCD::setShutter(int open)
 {
@@ -794,7 +794,7 @@ void marCCD::marCCDTask()
             callParamCallbacks();
             /* Release the lock while we wait for an event that says acquire has started, then lock again */
             epicsMutexUnlock(this->mutexId);
-            asynPrint(this->pasynUser, ASYN_TRACE_FLOW, 
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, 
                 "%s:%s: waiting for acquire to start\n", driverName, functionName);
             status = epicsEventWait(this->startEventId);
             epicsMutexLock(this->mutexId);
@@ -814,7 +814,7 @@ void marCCD::marCCDTask()
         if (shutterMode == ADShutterModeNone) useShutter=0; else useShutter=1;
         if (autoSave) writeHeader();
         
-        epicsTimeGetCurrent(&this->startTime);
+        epicsTimeGetCurrent(&this->acqStartTime);
         
         switch(frameType) {
             case marCCDFrameNormal:
@@ -888,8 +888,8 @@ void marCCD::marCCDTask()
         if (acquire) {
             /* We are in continuous or multiple mode.
              * Sleep until the acquire period expires or acquire is set to stop */
-            epicsTimeGetCurrent(&this->endTime);
-            elapsedTime = epicsTimeDiffInSeconds(&this->endTime, &this->startTime);
+            epicsTimeGetCurrent(&this->acqEndTime);
+            elapsedTime = epicsTimeDiffInSeconds(&this->acqEndTime, &this->acqStartTime);
             getDoubleParam(ADAcquirePeriod, &acquirePeriod);
             delayTime = acquirePeriod - elapsedTime;
             if (delayTime > 0.) {
