@@ -152,7 +152,6 @@ typedef enum {
     marCCDTaskCorrectStatus,
     marCCDTaskWritingStatus,
     marCCDTaskDezingerStatus,
-    marCCDReadStatus,
     marCCDFrameShift,
     marCCDDetectorDistance,
     marCCDBeamX,
@@ -176,7 +175,6 @@ static asynParamString_t marCCDParamString[] = {
     {marCCDTaskCorrectStatus,  "MAR_CORRECT_STATUS"},
     {marCCDTaskWritingStatus,  "MAR_WRITING_STATUS"},
     {marCCDTaskDezingerStatus, "MAR_DEZINGER_STATUS"},
-    {marCCDReadStatus,         "MAR_READ_STATUS"},
     {marCCDFrameShift,         "MAR_FRAME_SHIFT"},
     {marCCDDetectorDistance,   "MAR_DETECTOR_DISTANCE"},
     {marCCDBeamX,              "MAR_BEAM_X"},
@@ -944,7 +942,7 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
          writeServer(this->toServer);
          getConfig();
          break;       
-    case marCCDReadStatus:
+    case ADReadStatus:
         if (value) getState();
         break;
     case ADWriteFile:
