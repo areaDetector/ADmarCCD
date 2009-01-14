@@ -9,8 +9,10 @@ include $(TOP)/configure/CONFIG
 
 # We only build on Linux and Solaris.  If your architecture has
 # libtiff, libjpeg, and libz you can add it here.
-LIBRARY_IOC_Linux = marCCD
-LIBRARY_IOC_solaris = marCCD
+# We add _AD (for areaDetector) to the library name to avoid conflict
+# with the library marCCD in the ccd module
+LIBRARY_IOC_Linux = marCCD_AD
+LIBRARY_IOC_solaris = marCCD_AD
 PROD_IOC_Linux += marCCDApp
 PROD_IOC_solaris += marCCDApp
 
@@ -32,13 +34,14 @@ marCCDApp_SRCS_DEFAULT += marCCDApp_registerRecordDeviceDriver.cpp marCCDAppMain
 marCCDApp_SRCS_vxWorks += marCCDApp_registerRecordDeviceDriver.cpp
 
 # Add locally compiled object code
-marCCDApp_LIBS += marCCD
+marCCDApp_LIBS += marCCD_AD
 marCCDApp_LIBS += ADPlugin ADBase netCDF
 marCCDApp_LIBS += calc sscan autosave mca
 marCCDApp_LIBS += asyn
 marCCDApp_LIBS += $(EPICS_BASE_IOC_LIBS)
-#marCCDApp_SYS_LIBS += tiff jpeg z
-LDLIBS += -ltiff -ljpeg -lz
+marCCDApp_SYS_LIBS += tiff jpeg z
+
+marCCDApp_LIBS_Linux += PvAPI
 
 marCCDApp_SYS_LIBS_cygwin32 += rpc
 
