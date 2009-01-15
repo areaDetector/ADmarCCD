@@ -19,7 +19,7 @@ PROD_IOC_solaris += marCCDApp
 LIB_SRCS += marCCD.cpp
 LIB_SRCS += drvMARCCDEpics.c
 LIB_LIBS += NDPlugin ADBase netCDF
-LIB_LIBS += calc sscan autosave mca
+LIB_LIBS += calc busy sscan autosave mca
 LIB_LIBS += asyn
 LIB_LIBS += $(EPICS_BASE_IOC_LIBS)
 LIB_SYS_LIBS += tiff jpeg z
@@ -37,7 +37,7 @@ marCCDApp_SRCS_vxWorks += marCCDApp_registerRecordDeviceDriver.cpp
 # Add locally compiled object code
 marCCDApp_LIBS += marCCD_AD
 marCCDApp_LIBS += NDPlugin ADBase netCDF
-marCCDApp_LIBS += calc sscan autosave mca
+marCCDApp_LIBS += calc busy sscan autosave mca
 marCCDApp_LIBS += asyn
 marCCDApp_LIBS += $(EPICS_BASE_IOC_LIBS)
 marCCDApp_SYS_LIBS += tiff jpeg z
