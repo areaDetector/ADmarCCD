@@ -36,12 +36,12 @@ static void configMARCCDCallFunc(const iocshArgBuf *args)
 }
 
 
-static void marCCDRegister(void)
+static void marCCD_ADRegister(void)
 {
 
     iocshRegister(&configMARCCD, configMARCCDCallFunc);
 }
 
-epicsExportRegistrar(marCCDRegister);
+epicsExportRegistrar(marCCD_ADRegister);
 
 
