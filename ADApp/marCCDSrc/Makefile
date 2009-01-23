@@ -28,7 +28,7 @@ LIB_SYS_LIBS += tiff jpeg z
 
 # <name>.dbd will be created from <name>Include.dbd
 DBD += marCCDApp.dbd
-DBD += marCCDSupport.dbd
+DBD += marCCD_ADSupport.dbd
 
 # <name>_registerRecordDeviceDriver.cpp will be created from <name>.dbd
 marCCDApp_SRCS_DEFAULT += marCCDApp_registerRecordDeviceDriver.cpp marCCDAppMain.cpp
