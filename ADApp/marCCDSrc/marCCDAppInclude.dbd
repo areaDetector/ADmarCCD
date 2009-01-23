@@ -1,5 +1,5 @@
 include "base.dbd"
-include "marCCDSupport.dbd"
+include "marCCD_ADSupport.dbd"
 include "ADSupport.dbd"
 include "pluginSupport.dbd"
 include "calcSupport.dbd"
