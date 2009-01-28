@@ -15,8 +15,8 @@ asynSetTraceIOMask("marServer",0,2)
 
 marCCDConfig("MAR", "marServer", 20, 200000000)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",  "P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
 
 # Create a standard arrays plugin
 drvNDStdArraysConfigure("MARImage", 5, 0, "MAR", 0, -1)
