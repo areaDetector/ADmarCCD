@@ -3,6 +3,8 @@ file "marCCD_settings.req",       P=$(P),  R=cam1:
 file "NDFile_settings.req",       P=$(P),  R=cam1:
 file "NDPluginBase_settings.req", P=$(P),  R=image1:
 file "NDStdArrays_settings.req",  P=$(P),  R=image1:
+file "NDPluginBase_settings.req", P=$(P),  R=file1:
+file "NDFile_settings.req",       P=$(P),  R=file1:
 file "NDPluginBase_settings.req", P=$(P),  R=ROI1:
 file "NDROI_settings.req",        P=$(P),  R=ROI1:
 file "NDROIN_settings.req",       P=$(P),  R=ROI1:0:
