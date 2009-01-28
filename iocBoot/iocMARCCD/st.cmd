@@ -23,6 +23,11 @@ drvNDStdArraysConfigure("MARImage", 5, 0, "MAR", 0, -1)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,SIZE=16,FTVL=SHORT,NELEMENTS=1200000")
 
+# Create a file saving plugin
+drvNDFileConfigure("MARFile", 20, 0, "MAR", 0)
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=file1:,PORT=MARFile,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template",      "P=13MARCCD1:,R=file1:,PORT=MARFile,ADDR=0,TIMEOUT=1")
+
 # Create an ROI plugin
 drvNDROIConfigure("MARROI", 5, 0, "MAR", 0, 10, 20, -1)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=ROI1:,  PORT=MARROI,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
