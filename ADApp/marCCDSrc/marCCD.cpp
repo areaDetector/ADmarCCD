@@ -102,7 +102,8 @@ static const char *driverName = "marCCD";
 class marCCD : public ADDriver {
 public:
     marCCD(const char *portName, const char *marCCDPort,
-           int maxBuffers, size_t maxMemory);
+           int maxBuffers, size_t maxMemory,
+           int priority, int stackSize);
                  
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
@@ -1020,16 +1021,21 @@ void marCCD::report(FILE *fp, int details)
 }
 
 extern "C" int marCCDConfig(const char *portName, const char *serverPort, 
-                            int maxBuffers, size_t maxMemory)
+                            int maxBuffers, size_t maxMemory,
+                            int priority, int stackSize)
 {
-    new marCCD(portName, serverPort, maxBuffers, maxMemory);
+    new marCCD(portName, serverPort, maxBuffers, maxMemory, priority, stackSize);
     return(asynSuccess);
 }
 
 marCCD::marCCD(const char *portName, const char *serverPort,
-                                int maxBuffers, size_t maxMemory)
+                                int maxBuffers, size_t maxMemory,
+                                int priority, int stackSize)
 
-    : ADDriver(portName, 1, ADLastDriverParam, maxBuffers, maxMemory, 0, 0), 
+    : ADDriver(portName, 1, ADLastDriverParam, maxBuffers, maxMemory,
+               0, 0,             /* No interfaces beyond those set in ADDriver.cpp */
+               ASYN_CANBLOCK, 1, /* ASYN_CANBLOCK=1, ASYN_MULTIDEVICE=0, autoConnect=1 */
+               priority, stackSize),
       pData(NULL)
 
 {

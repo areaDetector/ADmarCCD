@@ -25,14 +25,19 @@ static const iocshArg marCCDConfigArg0 = {"Port name", iocshArgString};
 static const iocshArg marCCDConfigArg1 = {"server port name", iocshArgString};
 static const iocshArg marCCDConfigArg2 = {"maxBuffers", iocshArgInt};
 static const iocshArg marCCDConfigArg3 = {"maxMemory", iocshArgInt};
+static const iocshArg marCCDConfigArg4 = {"priority", iocshArgInt};
+static const iocshArg marCCDConfigArg5 = {"stackSize", iocshArgInt};
 static const iocshArg * const marCCDConfigArgs[] =  {&marCCDConfigArg0,
                                                      &marCCDConfigArg1,
                                                      &marCCDConfigArg2,
-                                                     &marCCDConfigArg3};
-static const iocshFuncDef configMARCCD = {"marCCDConfig", 4, marCCDConfigArgs};
+                                                     &marCCDConfigArg3,
+                                                     &marCCDConfigArg4,
+                                                     &marCCDConfigArg5};
+static const iocshFuncDef configMARCCD = {"marCCDConfig", 6, marCCDConfigArgs};
 static void configMARCCDCallFunc(const iocshArgBuf *args)
 {
-    marCCDConfig(args[0].sval, args[1].sval, args[2].ival,  args[3].ival);
+    marCCDConfig(args[0].sval, args[1].sval, args[2].ival,
+                 args[3].ival, args[4].ival, args[5].ival);
 }
 
 
