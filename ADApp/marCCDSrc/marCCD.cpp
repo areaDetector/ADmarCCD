@@ -217,9 +217,9 @@ void marCCD::getImageDataTask()
             epicsThreadSleep(MARCCD_POLL_DELAY);
             status = getState();
         }
-        epicsMutexLock(this->mutexId);
+        this->lock();
         getImageData();
-        epicsMutexUnlock(this->mutexId);
+        this->unlock();
     }
 }
 
@@ -253,11 +253,11 @@ void marCCD::getImageData()
     /* Call the NDArray callback */
     /* Must release the lock here, or we can get into a deadlock, because we can
      * block on the plugin lock, and the plugin can be calling us */
-    epicsMutexUnlock(this->mutexId);
+    this->unlock();
     asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, 
          "%s:%s: calling NDArray callback\n", driverName, functionName);
     doCallbacksGenericPointer(pImage, NDArrayData, 0);
-    epicsMutexLock(this->mutexId);
+    this->lock();
 
     /* Free the image buffer */
     pImage->release();
@@ -649,9 +649,9 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
      * so we can abort */
     epicsTimerStartDelay(this->timerId, exposureTime);
     while(1) {
-        epicsMutexUnlock(this->mutexId);
+        this->unlock();
         status = epicsEventWaitWithTimeout(this->stopEventId, MARCCD_POLL_DELAY);
-        epicsMutexLock(this->mutexId);
+        this->lock();
         if (status == epicsEventWaitOK) {
             /* The acquisition was stopped before the time was complete */
             epicsTimerCancel(this->timerId);
@@ -780,7 +780,7 @@ void marCCD::marCCDTask()
     const char *functionName = "marCCDTask";
     char fullFileName[MAX_FILENAME_LEN];
 
-    epicsMutexLock(this->mutexId);
+    this->lock();
 
     /* Loop forever */
     while (1) {
@@ -792,11 +792,11 @@ void marCCD::marCCDTask()
             setStringParam(ADStatusMessage, "Waiting for acquire command");
             callParamCallbacks();
             /* Release the lock while we wait for an event that says acquire has started, then lock again */
-            epicsMutexUnlock(this->mutexId);
+            this->unlock();
             asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, 
                 "%s:%s: waiting for acquire to start\n", driverName, functionName);
             status = epicsEventWait(this->startEventId);
-            epicsMutexLock(this->mutexId);
+            this->lock();
             getIntegerParam(ADAcquire, &acquire);
             setIntegerParam(ADNumImagesCounter, 0);
             callParamCallbacks();
@@ -894,9 +894,9 @@ void marCCD::marCCDTask()
             if (delayTime > 0.) {
                 setIntegerParam(ADStatus, ADStatusWaiting);
                 callParamCallbacks();
-                epicsMutexUnlock(this->mutexId);
+                this->unlock();
                 status = epicsEventWaitWithTimeout(this->stopEventId, delayTime);
-                epicsMutexLock(this->mutexId);
+                this->lock();
             }
         }
 
