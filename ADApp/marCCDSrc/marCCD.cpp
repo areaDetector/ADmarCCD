@@ -40,55 +40,58 @@
 
 #include "drvMARCCD.h"
 
-#define MAX_MESSAGE_SIZE 256 /* Messages to/from server */
+/** Messages to/from server */
+#define MAX_MESSAGE_SIZE 256
 #define MAX_FILENAME_LEN 256
 #define MARCCD_SERVER_TIMEOUT 1.0 
-/* Time between checking to see if TIFF file is complete */
+/** Time between checking to see if TIFF file is complete */
 #define FILE_READ_DELAY .01
 #define MARCCD_POLL_DELAY .01
 
-/* Task numbers */
-#define TASK_ACQUIRE		0
-#define TASK_READ		1
-#define TASK_CORRECT		2
-#define TASK_WRITE		3
-#define TASK_DEZINGER		4
+/** Task numbers */
+#define TASK_ACQUIRE     0
+#define TASK_READ        1
+#define TASK_CORRECT     2
+#define TASK_WRITE       3
+#define TASK_DEZINGER    4
 
-/* The status bits for each task are: */
-/* Task Status bits */
-#define TASK_STATUS_QUEUED	0x1
-#define TASK_STATUS_EXECUTING	0x2
-#define TASK_STATUS_ERROR	0x4
-#define TASK_STATUS_RESERVED	0x8
+/** The status bits for each task are: */
+/** Task Status bits */
+#define TASK_STATUS_QUEUED     0x1
+#define TASK_STATUS_EXECUTING  0x2
+#define TASK_STATUS_ERROR      0x4
+#define TASK_STATUS_RESERVED   0x8
 
-/* This are the "old" states from version 0, but BUSY is also used in version 1 */
-#define TASK_STATE_IDLE 0
-#define TASK_STATE_ACQUIRE 1
-#define TASK_STATE_READOUT 2
-#define TASK_STATE_CORRECT 3
-#define TASK_STATE_WRITING 4
-#define TASK_STATE_ABORTING 5
+/** These are the "old" states from version 0, but BUSY is also used in version 1 */
+#define TASK_STATE_IDLE        0 
+#define TASK_STATE_ACQUIRE     1
+#define TASK_STATE_READOUT     2
+#define TASK_STATE_CORRECT     3
+#define TASK_STATE_WRITING     4
+#define TASK_STATE_ABORTING    5
 #define TASK_STATE_UNAVAILABLE 6
-#define TASK_STATE_ERROR 7
-#define TASK_STATE_BUSY 8
+#define TASK_STATE_ERROR       7
+#define TASK_STATE_BUSY        8
 
-/* These are the definitions of masks for looking at task state bits */
-#define STATE_MASK		0xf
-#define STATUS_MASK		0xf
-#define TASK_STATUS_MASK(task)	(STATUS_MASK << (4*((task)+1)))
+/** These are the definitions of masks for looking at task state bits */
+#define STATE_MASK        0xf
+#define STATUS_MASK       0xf
+#define TASK_STATUS_MASK(task) (STATUS_MASK << (4*((task)+1)))
 
-/* These are some convenient macros for checking and setting the state of each task */
-/* They are used in the marccd code and can be used in the client code */
+/** These are some convenient macros for checking and setting the state of each task */
+/** They are used in the marccd code and can be used in the client code */
 #define TASK_STATE(current_status) ((current_status) & STATE_MASK)
 #define TASK_STATUS(current_status, task) (((current_status) & TASK_STATUS_MASK(task)) >> (4*((task) + 1)))
 #define TEST_TASK_STATUS(current_status, task, status) (TASK_STATUS(current_status, task) & (status))
 
+/** Trigger mode choices */
 typedef enum {
     TMInternal,
     TMExternal,
     TMAlignment
 } marCCDTriggerMode_t;
 
+/** Frame type choices */
 typedef enum {
     marCCDFrameNormal,
     marCCDFrameBackground,
@@ -99,6 +102,10 @@ typedef enum {
 
 static const char *driverName = "marCCD";
 
+/** Driver for marCCD (Rayonix) CCD detector; communicates with the marCCD program over a TCP/IP
+  * socket with the marccd_server_socket program that they distribute.
+  * The marCCD program must be set into Acquire/Remote Control/Start to use this driver. 
+  */
 class marCCD : public ADDriver {
 public:
     marCCD(const char *portName, const char *marCCDPort,
@@ -110,9 +117,12 @@ public:
     virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo, 
                                      const char **pptypeName, size_t *psize);
     void report(FILE *fp, int details);
-                                        
+    void marCCDTask();          /**< This should be private but is called from C, must be public */
+    void getImageDataTask();    /**< This should be private but is called from C, must be public */
+    epicsEventId stopEventId;   /**< This should be private but is accessed from C, must be public */
+
+private:                                        
     /* These are the methods that are new to this class */
-    void marCCDTask();
     asynStatus readTiff(const char *fileName, NDArray *pImage);
     asynStatus writeServer(const char *output);
     asynStatus readServer(char *input, size_t maxChars, double timeout);
@@ -124,12 +134,10 @@ public:
     void readoutFrame(int bufferNumber, const char* fileName, int wait);
     void setShutter(int open);
     void saveFile(int correctedFlag, int wait);
-    void getImageDataTask();
     void getImageData();
    
     /* Our data */
     epicsEventId startEventId;
-    epicsEventId stopEventId;
     epicsEventId imageEventId;
     epicsTimeStamp acqStartTime;
     epicsTimeStamp acqEndTime;
@@ -140,8 +148,7 @@ public:
     asynUser *pasynUserServer;
 };
 
-/* If we have any private driver parameters they begin with ADFirstDriverParam and should end
-   with ADLastDriverParam, which is used for setting the size of the parameter library table */
+/** Driver-specific parameters for the marCCD driver */
 typedef enum {
     marCCDTiffTimeout
         = ADFirstDriverParam,
@@ -195,12 +202,12 @@ void getImageDataTaskC(marCCD *pmarCCD)
     pmarCCD->getImageDataTask();
 }
 
+/** This task does the correction and file saving in the background, so that acquisition
+  * can be overlapped with these operations */  
 void marCCD::getImageDataTask()
 {
     int status;
   
-    /* This task does the correction and file saving in the background, so that acquisition
-     * can be overlapped with these operations */  
     while (1) {
         status = epicsEventWait(this->imageEventId);
         /* Wait for the correction to complete */
@@ -263,7 +270,7 @@ void marCCD::getImageData()
     pImage->release();
 }
 
-/* This function reads TIFF files using libTiff.  It is not intended to be general,
+/** This function reads TIFF files using libTiff; it is not intended to be general,
  * it is intended to read the TIFF files that marCCDServer creates.  It checks to make sure
  * that the creation time of the file is after a start time passed to it, to force it to
  * wait for a new file to be created.
@@ -566,7 +573,7 @@ asynStatus marCCD::getConfig()
     return(asynSuccess);
 }
 
-/* This function is called when the exposure time timer expires */
+/** This function is called when the exposure time timer expires */
 extern "C" {static void timerCallbackC(void *drvPvt)
 {
     marCCD *pPvt = (marCCD *)drvPvt;
@@ -759,10 +766,10 @@ static void marCCDTaskC(void *drvPvt)
     pPvt->marCCDTask();
 }
 
+/** This thread controls acquisition, reads TIFF files to get the image data, and
+ * does the callbacks to send it to higher layers */
 void marCCD::marCCDTask()
 {
-    /* This thread controls acquisition, reads TIFF files to get the image data, and
-     * does the callbacks to send it to higher layers */
     int status = asynSuccess;
     int imageCounter;
     int numImages, numImagesCounter;
@@ -906,6 +913,11 @@ void marCCD::marCCDTask()
 }
 
 
+/** Called when asyn clients call pasynInt32->write().
+  * This function performs actions for some parameters, including ADAcquire, ADBinX, etc.
+  * For all parameters it sets the value in the parameter library and calls any registered callbacks..
+  * \param[in] pasynUser pasynUser structure that encodes the reason and address.
+  * \param[in] value Value to write. */
 asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
@@ -975,38 +987,36 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
 
 
-/* asynDrvUser routines */
+/** Sets pasynUser->reason to one of the enum values for the parameters defined for
+  * this class if the drvInfo field matches one the strings defined for it.
+  * If the parameter is not recognized by this class then calls ADDriver::drvUserCreate.
+  * Uses asynPortDriver::drvUserCreateParam.
+  * \param[in] pasynUser pasynUser structure that driver modifies
+  * \param[in] drvInfo String containing information about what driver function is being referenced
+  * \param[out] pptypeName Location in which driver puts a copy of drvInfo.
+  * \param[out] psize Location where driver puts size of param 
+  * \return Returns asynSuccess if a matching string was found, asynError if not found. */
 asynStatus marCCD::drvUserCreate(asynUser *pasynUser,
-                                      const char *drvInfo, 
-                                      const char **pptypeName, size_t *psize)
+                                       const char *drvInfo, 
+                                       const char **pptypeName, size_t *psize)
 {
     asynStatus status;
-    int param;
-    const char *functionName = "drvUserCreate";
+    //const char *functionName = "drvUserCreate";
+    
+    status = this->drvUserCreateParam(pasynUser, drvInfo, pptypeName, psize, 
+                                      marCCDParamString, NUM_MARCCD_PARAMS);
 
-    /* See if this is one of our standard parameters */
-    status = findParam(marCCDParamString, NUM_MARCCD_PARAMS, 
-                       drvInfo, &param);
-                                
-    if (status == asynSuccess) {
-        pasynUser->reason = param;
-        if (pptypeName) {
-            *pptypeName = epicsStrDup(drvInfo);
-        }
-        if (psize) {
-            *psize = sizeof(param);
-        }
-        asynPrint(pasynUser, ASYN_TRACE_FLOW,
-                  "%s:%s: drvInfo=%s, param=%d\n", 
-                  driverName, functionName, drvInfo, param);
-        return(asynSuccess);
-    }
-    
-    /* If not, then see if it is a base class parameter */
-    status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
-    return(status);  
+    /* If not, then call the base class method, see if it is known there */
+    if (status) status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
+    return(status);
 }
-    
+
+/** Report status of the driver.
+  * Prints details about the driver if details>0.
+  * It then calls the ADDriver::report() method.
+  * \param[in] fp File pointed passed by caller where the output is written to.
+  * \param[in] details If >0 then driver details are printed.
+  */
 void marCCD::report(FILE *fp, int details)
 {
     fprintf(fp, "MAR-CCD detector %s\n", this->portName);
@@ -1028,6 +1038,19 @@ extern "C" int marCCDConfig(const char *portName, const char *serverPort,
     return(asynSuccess);
 }
 
+/** Constructor for marCCD driver; most parameters are simply passed to ADDriver::ADDriver.
+  * After calling the base class constructor this method creates a thread to collect the detector data, 
+  * and sets reasonable default values the parameters defined in this class and ADStdDriverParams.h.
+  * \param[in] portName The name of the asyn port driver to be created.
+  * \param[in] serverPort The name of the asyn port driver previously created with drvAsynIPPortConfigure
+  *            connected to the marccd_server program.
+  * \param[in] maxBuffers The maximum number of NDArray buffers that the NDArrayPool for this driver is 
+  *            allowed to allocate. Set this to -1 to allow an unlimited number of buffers.
+  * \param[in] maxMemory The maximum amount of memory that the NDArrayPool for this driver is 
+  *            allowed to allocate. Set this to -1 to allow an unlimited amount of memory.
+  * \param[in] priority The thread priority for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
+  * \param[in] stackSize The stack size for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
+  */
 marCCD::marCCD(const char *portName, const char *serverPort,
                                 int maxBuffers, size_t maxMemory,
                                 int priority, int stackSize)
