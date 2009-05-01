@@ -151,7 +151,7 @@ private:
 /** Driver-specific parameters for the marCCD driver */
 typedef enum {
     marCCDTiffTimeout
-        = ADFirstDriverParam,
+        = ADLastStdParam,
     marCCDOverlap,
     marCCDState,
     marCCDStatus,
@@ -242,10 +242,10 @@ void marCCD::getImageData()
 
     /* Inquire about the image dimensions */
     getConfig();
-    getStringParam(ADFullFileName, MAX_FILENAME_LEN, fullFileName);
-    getIntegerParam(ADImageSizeX, &dims[0]);
-    getIntegerParam(ADImageSizeY, &dims[1]);
-    getIntegerParam(ADImageCounter, &imageCounter);
+    getStringParam(NDFullFileName, MAX_FILENAME_LEN, fullFileName);
+    getIntegerParam(NDArraySizeX, &dims[0]);
+    getIntegerParam(NDArraySizeY, &dims[1]);
+    getIntegerParam(NDArrayCounter, &imageCounter);
     pImage = this->pNDArrayPool->alloc(2, dims, NDUInt16, 0, NULL);
 
     epicsSnprintf(statusMessage, sizeof(statusMessage), "Reading TIFF file %s", fullFileName);
@@ -554,8 +554,8 @@ asynStatus marCCD::getConfig()
     status = writeReadServer("get_size", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
     if (status) return(status);
     sscanf(this->fromServer, "%d,%d", &sizeX, &sizeY);
-    setIntegerParam(ADImageSizeX, sizeX);
-    setIntegerParam(ADImageSizeY, sizeY);
+    setIntegerParam(NDArraySizeX, sizeX);
+    setIntegerParam(NDArraySizeY, sizeY);
     status = writeReadServer("get_bin", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
     if (status) return(status);
     sscanf(this->fromServer, "%d,%d", &binX, &binY);
@@ -564,7 +564,7 @@ asynStatus marCCD::getConfig()
     setIntegerParam(ADMaxSizeX, sizeX*binX);
     setIntegerParam(ADMaxSizeY, sizeY*binY);
     imageSize = sizeX * sizeY * sizeof(epicsInt16);
-    setIntegerParam(ADImageSize, imageSize);
+    setIntegerParam(NDArraySize, imageSize);
     status = writeReadServer("get_frameshift", this->fromServer, sizeof(this->fromServer),
                               MARCCD_SERVER_TIMEOUT);
     sscanf(this->fromServer, "%d", &frameShift);
@@ -691,7 +691,7 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
 
     if (fileName && strlen(fileName)!=0) {
         epicsSnprintf(this->toServer, sizeof(this->toServer), "readout,%d,%s", bufferNumber, fileName);
-        setStringParam(ADFullFileName, fileName);
+        setStringParam(NDFullFileName, fileName);
         callParamCallbacks();
     } else {
         epicsSnprintf(this->toServer, sizeof(this->toServer), "readout,%d", bufferNumber);
@@ -748,7 +748,7 @@ void marCCD::saveFile(int correctedFlag, int wait)
     epicsSnprintf(this->toServer, sizeof(this->toServer), "writefile,%s,%d", 
                   fullFileName, correctedFlag);
     writeServer(this->toServer);
-    setStringParam(ADFullFileName, fullFileName);
+    setStringParam(NDFullFileName, fullFileName);
     callParamCallbacks();
     if (!wait) return;
     status = getState();
@@ -812,10 +812,10 @@ void marCCD::marCCDTask()
         /* Get current values of some parameters */
         getIntegerParam(ADFrameType, &frameType);
         getDoubleParam(ADAcquireTime, &acquireTime);
-        getIntegerParam(ADAutoSave, &autoSave);
+        getIntegerParam(NDAutoSave, &autoSave);
         getIntegerParam(marCCDOverlap, &overlap);
         getIntegerParam(ADShutterMode, &shutterMode);
-        getIntegerParam(ADArrayCallbacks, &arrayCallbacks);
+        getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
         if (overlap) wait=0; else wait=1;
         if (shutterMode == ADShutterModeNone) useShutter=0; else useShutter=1;
         if (autoSave) writeHeader();
@@ -869,9 +869,9 @@ void marCCD::marCCDTask()
                 if (autoSave) saveFile(1, 1);
         }
         
-        getIntegerParam(ADImageCounter, &imageCounter);
+        getIntegerParam(NDArrayCounter, &imageCounter);
         imageCounter++;
-        setIntegerParam(ADImageCounter, imageCounter);
+        setIntegerParam(NDArrayCounter, imageCounter);
         getIntegerParam(ADNumImagesCounter, &numImagesCounter);
         numImagesCounter++;
         setIntegerParam(ADNumImagesCounter, numImagesCounter);
@@ -958,7 +958,7 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     case ADReadStatus:
         if (value) getState();
         break;
-    case ADWriteFile:
+    case NDWriteFile:
         getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
         saveFile(correctedFlag, 1);
@@ -1109,7 +1109,7 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     /* Set some default values for parameters */
     status =  setStringParam (ADManufacturer, "MAR");
     status |= setStringParam (ADModel, "CCD");
-    status |= setIntegerParam(ADDataType,  NDInt16);
+    status |= setIntegerParam(NDDataType,  NDInt16);
     status |= setIntegerParam(ADImageMode, ADImageSingle);
     status |= setIntegerParam(ADTriggerMode, TMInternal);
     status |= setDoubleParam (ADAcquireTime, 1.);
