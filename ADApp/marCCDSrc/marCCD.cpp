@@ -31,14 +31,12 @@
 #include <epicsStdio.h>
 #include <epicsMutex.h>
 #include <cantProceed.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 
 #include <asynOctetSyncIO.h>
 
-#include "ADStdDriverParams.h"
-#include "NDArray.h"
 #include "ADDriver.h"
-
-#include "drvMARCCD.h"
 
 /** Messages to/from server */
 #define MAX_MESSAGE_SIZE 256
@@ -1147,3 +1145,31 @@ marCCD::marCCD(const char *portName, const char *serverPort,
         return;
     }
 }
+
+/* Code for iocsh registration */
+static const iocshArg marCCDConfigArg0 = {"Port name", iocshArgString};
+static const iocshArg marCCDConfigArg1 = {"server port name", iocshArgString};
+static const iocshArg marCCDConfigArg2 = {"maxBuffers", iocshArgInt};
+static const iocshArg marCCDConfigArg3 = {"maxMemory", iocshArgInt};
+static const iocshArg marCCDConfigArg4 = {"priority", iocshArgInt};
+static const iocshArg marCCDConfigArg5 = {"stackSize", iocshArgInt};
+static const iocshArg * const marCCDConfigArgs[] =  {&marCCDConfigArg0,
+                                                     &marCCDConfigArg1,
+                                                     &marCCDConfigArg2,
+                                                     &marCCDConfigArg3,
+                                                     &marCCDConfigArg4,
+                                                     &marCCDConfigArg5};
+static const iocshFuncDef configMARCCD = {"marCCDConfig", 6, marCCDConfigArgs};
+static void configMARCCDCallFunc(const iocshArgBuf *args)
+{
+    marCCDConfig(args[0].sval, args[1].sval, args[2].ival,
+                 args[3].ival, args[4].ival, args[5].ival);
+}
+
+
+static void marCCD_ADRegister(void)
+{
+    iocshRegister(&configMARCCD, configMARCCDCallFunc);
+}
+
+epicsExportRegistrar(marCCD_ADRegister);

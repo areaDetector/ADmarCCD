@@ -17,7 +17,6 @@ PROD_IOC_Linux += marCCDApp
 PROD_IOC_solaris += marCCDApp
 
 LIB_SRCS += marCCD.cpp
-LIB_SRCS += drvMARCCDEpics.c
 LIB_LIBS += NDPlugin ADBase netCDF
 LIB_LIBS += calc busy sscan autosave mca
 LIB_LIBS += asyn
