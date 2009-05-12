@@ -1172,4 +1172,6 @@ static void marCCD_ADRegister(void)
     iocshRegister(&configMARCCD, configMARCCDCallFunc);
 }
 
+extern "C" {
 epicsExportRegistrar(marCCD_ADRegister);
+}
