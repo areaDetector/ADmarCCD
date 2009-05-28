@@ -21,7 +21,7 @@ dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=13MARCCD1:,R=cam1:,
 # Create a standard arrays plugin
 NDStdArraysConfigure("MARImage", 5, 0, "MAR", 0, -1)
 dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,SIZE=16,FTVL=SHORT,NELEMENTS=1200000")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,TYPE=Int16,FTVL=SHORT,NELEMENTS=1200000")
 
 # Create a file saving plugin
 NDFileNetCDFConfigure("MARFile", 20, 0, "MAR", 0)
