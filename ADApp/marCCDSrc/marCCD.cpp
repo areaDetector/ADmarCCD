@@ -255,6 +255,9 @@ void marCCD::getImageData()
     pImage->uniqueId = imageCounter;
     pImage->timeStamp = this->acqStartTime.secPastEpoch + this->acqStartTime.nsec / 1.e9;
 
+    /* Get any attributes that have been defined for this driver */        
+    this->getAttributes(pImage);
+
     /* Call the NDArray callback */
     /* Must release the lock here, or we can get into a deadlock, because we can
      * block on the plugin lock, and the plugin can be calling us */
@@ -922,8 +925,11 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     int state, binX, binY;
     int correctedFlag, frameType;
     asynStatus status = asynSuccess;
+    int acquiring;
     const char *functionName = "writeInt32";
 
+    /* Get the current acquire status */
+    getIntegerParam(ADAcquire, &acquiring);
     status = setIntegerParam(function, value);
 
     switch (function) {
@@ -933,7 +939,7 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
             /* Send an event to wake up the marCCD task.  */
             epicsEventSignal(this->startEventId);
         } 
-        if (!value) {
+        if (!value && acquiring) {
             /* This was a command to stop acquisition */
             epicsEventSignal(this->stopEventId);
         }
@@ -965,7 +971,8 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
         setShutter(value);
         break;
     default:
-        status = ADDriver::writeInt32(pasynUser, value);
+        /* If this parameter belongs to a base class call its method */
+        if (function < ADLastStdParam) status = ADDriver::writeInt32(pasynUser, value);
         break;
     }
         
