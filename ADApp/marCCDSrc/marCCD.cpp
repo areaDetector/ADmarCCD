@@ -27,6 +27,7 @@
 #include <epicsEvent.h>
 #include <epicsTimer.h>
 #include <epicsMutex.h>
+#include <epicsStdlib.h>
 #include <epicsString.h>
 #include <epicsStdio.h>
 #include <epicsMutex.h>
@@ -165,6 +166,7 @@ typedef enum {
     marCCDStartPhi,
     marCCDRotationAxis,
     marCCDRotationRange,
+    marCCDTwoTheta,
     marCCDWavelength,
     marCCDFileComments,
     marCCDDatasetComments,
@@ -188,6 +190,7 @@ static asynParamString_t marCCDParamString[] = {
     {marCCDStartPhi,           "MAR_START_PHI"},
     {marCCDRotationAxis,       "MAR_ROTATION_AXIS"},
     {marCCDRotationRange,      "MAR_ROTATION_RANGE"},
+    {marCCDTwoTheta,           "MAR_TWO_THETA"},
     {marCCDWavelength,         "MAR_WAVELENGTH"},
     {marCCDFileComments,       "MAR_FILE_COMMENTS"},
     {marCCDDatasetComments,    "MAR_DATASET_COMMENTS"},
@@ -468,7 +471,11 @@ asynStatus marCCD::writeHeader()
 {
     asynStatus status;
     double detectorDistance, beamX, beamY, exposureTime, startPhi, rotationRange, wavelength;
-    char rotationAxis[MAX_MESSAGE_SIZE], fileComments[MAX_MESSAGE_SIZE], datasetComments[MAX_MESSAGE_SIZE];
+    char rotationAxis[MAX_MESSAGE_SIZE], twoTheta[MAX_MESSAGE_SIZE], fileComments[MAX_MESSAGE_SIZE], datasetComments[MAX_MESSAGE_SIZE];
+    int ignoreTwoTheta;
+    double twoThetaAsDouble;
+    char *twoThetaEndPtr;
+    const char *functionName="writeHeader";
     
     getDoubleParam(marCCDDetectorDistance, &detectorDistance);
     getDoubleParam(marCCDBeamX, &beamX);
@@ -478,8 +485,22 @@ asynStatus marCCD::writeHeader()
     getDoubleParam(marCCDRotationRange, &rotationRange);
     getDoubleParam(marCCDWavelength, &wavelength);
     getStringParam(marCCDRotationAxis, sizeof(rotationAxis), rotationAxis);
+    getStringParam(marCCDTwoTheta, sizeof(twoTheta), twoTheta);
     getStringParam(marCCDFileComments, sizeof(fileComments), fileComments);
     getStringParam(marCCDDatasetComments, sizeof(datasetComments), datasetComments);
+
+    ignoreTwoTheta = 1;
+    if (twoTheta[0] != '\0') {
+       twoThetaAsDouble = epicsStrtod(twoTheta, &twoThetaEndPtr);
+       if (errno == ERANGE || *twoThetaEndPtr != '\0') {
+          asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
+                    "%s:%s, invalid two theta value; expected a number; ignoring\n",
+                    driverName, functionName);
+       } else {
+          epicsSnprintf(twoTheta, sizeof(twoTheta), "%f", twoThetaAsDouble);
+          ignoreTwoTheta = 0;
+       }
+    }
     
     epicsSnprintf(this->toServer, sizeof(this->toServer),
                   "header,"
@@ -490,6 +511,7 @@ asynStatus marCCD::writeHeader()
                   "start_phi=%f,"
                   "rotation_axis=%s,"
                   "rotation_range=%f,"
+                  "%s%s%s"
                   "source_wavelength=%f,"
                   "file_comments=%s,"
                   "dataset_comments=%s",
@@ -500,6 +522,9 @@ asynStatus marCCD::writeHeader()
                   startPhi,
                   rotationAxis,
                   rotationRange,
+                  ignoreTwoTheta ? "" : "twotheta=",
+                  ignoreTwoTheta ? "" : twoTheta,
+                  ignoreTwoTheta ? "" : ",",
                   wavelength,
                   fileComments,
                   datasetComments);
