@@ -86,8 +86,7 @@
 /** Trigger mode choices */
 typedef enum {
     TMInternal,
-    TMExternal,
-    TMAlignment
+    TMExternal
 } marCCDTriggerMode_t;
 
 /** Frame type choices */
@@ -652,6 +651,9 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
     int status;
     epicsTimeStamp startTime, currentTime;
     double timeRemaining;
+    int triggerMode;
+    
+    getIntegerParam(ADTriggerMode, &triggerMode);
 
     /* Wait for the acquire task to be done with the previous acquisition, if any */    
     status = getState();
@@ -679,15 +681,17 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
     if (useShutter) setShutter(1);
 
     /* Wait for the exposure time using epicsEventWaitWithTimeout, 
-     * so we can abort */
-    epicsTimerStartDelay(this->timerId, exposureTime);
+     * so we can abort. */
+    /* If we are in external trigger mode don't use the timer at all, external software will
+     * start and stop the acquisition */
+    if (triggerMode == TMInternal) epicsTimerStartDelay(this->timerId, exposureTime);
     while(1) {
         this->unlock();
         status = epicsEventWaitWithTimeout(this->stopEventId, MARCCD_POLL_DELAY);
         this->lock();
         if (status == epicsEventWaitOK) {
             /* The acquisition was stopped before the time was complete */
-            epicsTimerCancel(this->timerId);
+            if (triggerMode == TMInternal) epicsTimerCancel(this->timerId);
             break;
         }
         epicsTimeGetCurrent(&currentTime);
