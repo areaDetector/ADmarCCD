@@ -83,12 +83,6 @@
 #define TASK_STATUS(current_status, task) (((current_status) & TASK_STATUS_MASK(task)) >> (4*((task) + 1)))
 #define TEST_TASK_STATUS(current_status, task, status) (TASK_STATUS(current_status, task) & (status))
 
-/** Trigger mode choices */
-typedef enum {
-    TMInternal,
-    TMExternal
-} marCCDTriggerMode_t;
-
 /** Frame type choices */
 typedef enum {
     marCCDFrameNormal,
@@ -684,14 +678,14 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
      * so we can abort. */
     /* If we are in external trigger mode don't use the timer at all, external software will
      * start and stop the acquisition */
-    if (triggerMode == TMInternal) epicsTimerStartDelay(this->timerId, exposureTime);
+    if (triggerMode == ADTriggerInternal) epicsTimerStartDelay(this->timerId, exposureTime);
     while(1) {
         this->unlock();
         status = epicsEventWaitWithTimeout(this->stopEventId, MARCCD_POLL_DELAY);
         this->lock();
         if (status == epicsEventWaitOK) {
             /* The acquisition was stopped before the time was complete */
-            if (triggerMode == TMInternal) epicsTimerCancel(this->timerId);
+            if (triggerMode == ADTriggerInternal) epicsTimerCancel(this->timerId);
             break;
         }
         epicsTimeGetCurrent(&currentTime);
@@ -1145,7 +1139,7 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     status |= setStringParam (ADModel, "CCD");
     status |= setIntegerParam(NDDataType,  NDInt16);
     status |= setIntegerParam(ADImageMode, ADImageSingle);
-    status |= setIntegerParam(ADTriggerMode, TMInternal);
+    status |= setIntegerParam(ADTriggerMode, ADTriggerInternal);
     status |= setDoubleParam (ADAcquireTime, 1.);
     status |= setDoubleParam (ADAcquirePeriod, 0.);
     status |= setIntegerParam(ADNumImages, 1);
