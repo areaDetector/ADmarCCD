@@ -31,7 +31,6 @@ DBD += marCCD_ADSupport.dbd
 
 # <name>_registerRecordDeviceDriver.cpp will be created from <name>.dbd
 marCCDApp_SRCS_DEFAULT += marCCDApp_registerRecordDeviceDriver.cpp marCCDAppMain.cpp
-marCCDApp_SRCS_vxWorks += marCCDApp_registerRecordDeviceDriver.cpp
 
 # Add locally compiled object code
 marCCDApp_LIBS += marCCD_AD
@@ -39,9 +38,16 @@ marCCDApp_LIBS += NDPlugin ADBase netCDF
 marCCDApp_LIBS += calc busy sscan autosave mca
 marCCDApp_LIBS += asyn
 marCCDApp_LIBS += $(EPICS_BASE_IOC_LIBS)
-marCCDApp_SYS_LIBS += tiff jpeg z
 
-marCCDApp_SYS_LIBS_cygwin32 += rpc
+# To use versions of these libraries supplied with areaDetector use this line
+marCCDApp_LIBS_Linux        += NeXus mfhdf df hdf5 mxml
+# To use system versions of these libraries use this line
+#marCCDApp_SYS_LIBS_Linux    += NeXus mfhdf df hdf5 mxml
+
+# To use versions of these libraries supplied with areaDetector use this line
+marCCDApp_LIBS_Linux        += tiff jpeg z
+# To use system versions of these libraries use this line
+#marCCDApp_SYS_LIBS_Linux    += tiff jpeg z
 
 #=============================
 
