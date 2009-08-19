@@ -1068,7 +1068,7 @@ extern "C" int marCCDConfig(const char *portName, const char *serverPort,
 
 /** Constructor for marCCD driver; most parameters are simply passed to ADDriver::ADDriver.
   * After calling the base class constructor this method creates a thread to collect the detector data, 
-  * and sets reasonable default values the parameters defined in this class and ADStdDriverParams.h.
+  * and sets reasonable default values the parameters defined in this class, asynNDArrayDriver, and ADDriver.
   * \param[in] portName The name of the asyn port driver to be created.
   * \param[in] serverPort The name of the asyn port driver previously created with drvAsynIPPortConfigure
   *            connected to the marccd_server program.
