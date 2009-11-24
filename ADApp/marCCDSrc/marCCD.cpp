@@ -91,6 +91,27 @@ typedef enum {
     marCCDFrameDoubleCorrelation
 } marCCDFrameType_t;
 
+#define marCCDTiffTimeoutString        "MAR_TIFF_TIMEOUT"
+#define marCCDOverlapString            "MAR_OVERLAP"
+#define marCCDStateString              "MAR_STATE"
+#define marCCDStatusString             "MAR_STATUS"
+#define marCCDTaskAcquireStatusString  "MAR_ACQUIRE_STATUS"
+#define marCCDTaskReadoutStatusString  "MAR_READOUT_STATUS"
+#define marCCDTaskCorrectStatusString  "MAR_CORRECT_STATUS"
+#define marCCDTaskWritingStatusString  "MAR_WRITING_STATUS"
+#define marCCDTaskDezingerStatusString "MAR_DEZINGER_STATUS"
+#define marCCDFrameShiftString         "MAR_FRAME_SHIFT"
+#define marCCDDetectorDistanceString   "MAR_DETECTOR_DISTANCE"
+#define marCCDBeamXString              "MAR_BEAM_X"
+#define marCCDBeamYString              "MAR_BEAM_Y"
+#define marCCDStartPhiString           "MAR_START_PHI"
+#define marCCDRotationAxisString       "MAR_ROTATION_AXIS"
+#define marCCDRotationRangeString      "MAR_ROTATION_RANGE"
+#define marCCDTwoThetaString           "MAR_TWO_THETA"
+#define marCCDWavelengthString         "MAR_WAVELENGTH"
+#define marCCDFileCommentsString       "MAR_FILE_COMMENTS"
+#define marCCDDatasetCommentsString    "MAR_DATASET_COMMENTS"
+
 
 static const char *driverName = "marCCD";
 
@@ -106,12 +127,34 @@ public:
                  
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo, 
-                                     const char **pptypeName, size_t *psize);
     void report(FILE *fp, int details);
     void marCCDTask();          /**< This should be private but is called from C, must be public */
     void getImageDataTask();    /**< This should be private but is called from C, must be public */
     epicsEventId stopEventId;   /**< This should be private but is accessed from C, must be public */
+
+protected:
+    int marCCDTiffTimeout;
+    #define FIRST_MARCCD_PARAM marCCDTiffTimeout
+    int marCCDOverlap;
+    int marCCDState;
+    int marCCDStatus;
+    int marCCDTaskAcquireStatus;
+    int marCCDTaskReadoutStatus;
+    int marCCDTaskCorrectStatus;
+    int marCCDTaskWritingStatus;
+    int marCCDTaskDezingerStatus;
+    int marCCDFrameShift;
+    int marCCDDetectorDistance;
+    int marCCDBeamX;
+    int marCCDBeamY;
+    int marCCDStartPhi;
+    int marCCDRotationAxis;
+    int marCCDRotationRange;
+    int marCCDTwoTheta;
+    int marCCDWavelength;
+    int marCCDFileComments;
+    int marCCDDatasetComments;
+    #define LAST_MARCCD_PARAM marCCDDatasetComments
 
 private:                                        
     /* These are the methods that are new to this class */
@@ -140,56 +183,8 @@ private:
     asynUser *pasynUserServer;
 };
 
-/** Driver-specific parameters for the marCCD driver */
-typedef enum {
-    marCCDTiffTimeout
-        = ADLastStdParam,
-    marCCDOverlap,
-    marCCDState,
-    marCCDStatus,
-    marCCDTaskAcquireStatus,
-    marCCDTaskReadoutStatus,
-    marCCDTaskCorrectStatus,
-    marCCDTaskWritingStatus,
-    marCCDTaskDezingerStatus,
-    marCCDFrameShift,
-    marCCDDetectorDistance,
-    marCCDBeamX,
-    marCCDBeamY,
-    marCCDStartPhi,
-    marCCDRotationAxis,
-    marCCDRotationRange,
-    marCCDTwoTheta,
-    marCCDWavelength,
-    marCCDFileComments,
-    marCCDDatasetComments,
-    ADLastDriverParam
-} marCCDParam_t;
 
-static asynParamString_t marCCDParamString[] = {
-    {marCCDTiffTimeout,        "MAR_TIFF_TIMEOUT"},
-    {marCCDOverlap,            "MAR_OVERLAP"},
-    {marCCDState,              "MAR_STATE"},
-    {marCCDStatus,             "MAR_STATUS"},
-    {marCCDTaskAcquireStatus,  "MAR_ACQUIRE_STATUS"},
-    {marCCDTaskReadoutStatus,  "MAR_READOUT_STATUS"},
-    {marCCDTaskCorrectStatus,  "MAR_CORRECT_STATUS"},
-    {marCCDTaskWritingStatus,  "MAR_WRITING_STATUS"},
-    {marCCDTaskDezingerStatus, "MAR_DEZINGER_STATUS"},
-    {marCCDFrameShift,         "MAR_FRAME_SHIFT"},
-    {marCCDDetectorDistance,   "MAR_DETECTOR_DISTANCE"},
-    {marCCDBeamX,              "MAR_BEAM_X"},
-    {marCCDBeamY,              "MAR_BEAM_Y"},
-    {marCCDStartPhi,           "MAR_START_PHI"},
-    {marCCDRotationAxis,       "MAR_ROTATION_AXIS"},
-    {marCCDRotationRange,      "MAR_ROTATION_RANGE"},
-    {marCCDTwoTheta,           "MAR_TWO_THETA"},
-    {marCCDWavelength,         "MAR_WAVELENGTH"},
-    {marCCDFileComments,       "MAR_FILE_COMMENTS"},
-    {marCCDDatasetComments,    "MAR_DATASET_COMMENTS"},
-};
-
-#define NUM_MARCCD_PARAMS (sizeof(marCCDParamString)/sizeof(marCCDParamString[0]))
+#define NUM_MARCCD_PARAMS (&LAST_MARCCD_PARAM - &FIRST_MARCCD_PARAM + 1)
 
 void getImageDataTaskC(marCCD *pmarCCD)
 {
@@ -955,8 +950,7 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     getIntegerParam(ADAcquire, &acquiring);
     status = setIntegerParam(function, value);
 
-    switch (function) {
-    case ADAcquire:
+    if (function == ADAcquire) {
         state = getState();
         if (value && (!TEST_TASK_STATUS(state, TASK_ACQUIRE, TASK_STATUS_QUEUED | TASK_STATUS_EXECUTING))) {
             /* Send an event to wake up the marCCD task.  */
@@ -966,9 +960,8 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
             /* This was a command to stop acquisition */
             epicsEventSignal(this->stopEventId);
         }
-        break;
-    case ADBinX:
-    case ADBinY:
+    } else if ((function == ADBinX) ||
+               (function == ADBinY)) {
         /* Set binning */
         getIntegerParam(ADBinX, &binX);
         getIntegerParam(ADBinY, &binY);
@@ -976,27 +969,21 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
         writeServer(this->toServer);
         /* Note, we cannot read back the actual binning values from marCCDServer here because the
          * server only updates them when the next image is collected */
-        break;
-    case marCCDFrameShift:
+    } else if (function == marCCDFrameShift) {
          epicsSnprintf(this->toServer, sizeof(this->toServer), "set_frameshift,%d", value);
          writeServer(this->toServer);
          getConfig();
-         break;       
-    case ADReadStatus:
+    } else if (function == ADReadStatus) {
         if (value) getState();
-        break;
-    case NDWriteFile:
+    } else if (function == NDWriteFile) {
         getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
         saveFile(correctedFlag, 1);
-        break;
-    case ADShutterControl:
+    } else if (function == ADShutterControl) {
         setShutter(value);
-        break;
-    default:
+    } else {
         /* If this parameter belongs to a base class call its method */
-        if (function < ADLastStdParam) status = ADDriver::writeInt32(pasynUser, value);
-        break;
+        if (function < FIRST_MARCCD_PARAM) status = ADDriver::writeInt32(pasynUser, value);
     }
         
     /* Do callbacks so higher layers see any changes */
@@ -1015,30 +1002,6 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
 
 
-/** Sets pasynUser->reason to one of the enum values for the parameters defined for
-  * this class if the drvInfo field matches one the strings defined for it.
-  * If the parameter is not recognized by this class then calls ADDriver::drvUserCreate.
-  * Uses asynPortDriver::drvUserCreateParam.
-  * \param[in] pasynUser pasynUser structure that driver modifies
-  * \param[in] drvInfo String containing information about what driver function is being referenced
-  * \param[out] pptypeName Location in which driver puts a copy of drvInfo.
-  * \param[out] psize Location where driver puts size of param 
-  * \return Returns asynSuccess if a matching string was found, asynError if not found. */
-asynStatus marCCD::drvUserCreate(asynUser *pasynUser,
-                                       const char *drvInfo, 
-                                       const char **pptypeName, size_t *psize)
-{
-    asynStatus status;
-    //const char *functionName = "drvUserCreate";
-    
-    status = this->drvUserCreateParam(pasynUser, drvInfo, pptypeName, psize, 
-                                      marCCDParamString, NUM_MARCCD_PARAMS);
-
-    /* If not, then call the base class method, see if it is known there */
-    if (status) status = ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
-    return(status);
-}
-
 /** Report status of the driver.
   * Prints details about the driver if details>0.
   * It then calls the ADDriver::report() method.
@@ -1083,7 +1046,7 @@ marCCD::marCCD(const char *portName, const char *serverPort,
                                 int maxBuffers, size_t maxMemory,
                                 int priority, int stackSize)
 
-    : ADDriver(portName, 1, ADLastDriverParam, maxBuffers, maxMemory,
+    : ADDriver(portName, 1, NUM_MARCCD_PARAMS, maxBuffers, maxMemory,
                0, 0,             /* No interfaces beyond those set in ADDriver.cpp */
                ASYN_CANBLOCK, 1, /* ASYN_CANBLOCK=1, ASYN_MULTIDEVICE=0, autoConnect=1 */
                priority, stackSize),
@@ -1095,6 +1058,27 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     const char *functionName = "marCCD";
     int dims[2];
 
+    addParam(marCCDTiffTimeoutString,       &marCCDTiffTimeout);
+    addParam(marCCDOverlapString,           &marCCDOverlap);
+    addParam(marCCDStateString,             &marCCDState);
+    addParam(marCCDStatusString,            &marCCDStatus);
+    addParam(marCCDTaskAcquireStatusString, &marCCDTaskAcquireStatus);
+    addParam(marCCDTaskReadoutStatusString, &marCCDTaskReadoutStatus);
+    addParam(marCCDTaskCorrectStatusString, &marCCDTaskCorrectStatus);
+    addParam(marCCDTaskWritingStatusString, &marCCDTaskWritingStatus);
+    addParam(marCCDTaskDezingerStatusString,&marCCDTaskDezingerStatus);
+    addParam(marCCDFrameShiftString,        &marCCDFrameShift);
+    addParam(marCCDDetectorDistanceString,  &marCCDDetectorDistance);
+    addParam(marCCDBeamXString,             &marCCDBeamX);
+    addParam(marCCDBeamYString,             &marCCDBeamY);
+    addParam(marCCDStartPhiString,          &marCCDStartPhi);
+    addParam(marCCDRotationAxisString,      &marCCDRotationAxis);
+    addParam(marCCDRotationRangeString,     &marCCDRotationRange);
+    addParam(marCCDTwoThetaString,          &marCCDTwoTheta);
+    addParam(marCCDWavelengthString,        &marCCDWavelength);
+    addParam(marCCDFileCommentsString,      &marCCDFileComments);
+    addParam(marCCDDatasetCommentsString,   &marCCDDatasetComments);
+    
     /* Create the epicsEvents for signaling to the marCCD task when acquisition starts and stops */
     this->startEventId = epicsEventCreate(epicsEventEmpty);
     if (!this->startEventId) {
