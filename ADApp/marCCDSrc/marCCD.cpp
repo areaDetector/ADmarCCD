@@ -1058,26 +1058,26 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     const char *functionName = "marCCD";
     int dims[2];
 
-    addParam(marCCDTiffTimeoutString,       &marCCDTiffTimeout);
-    addParam(marCCDOverlapString,           &marCCDOverlap);
-    addParam(marCCDStateString,             &marCCDState);
-    addParam(marCCDStatusString,            &marCCDStatus);
-    addParam(marCCDTaskAcquireStatusString, &marCCDTaskAcquireStatus);
-    addParam(marCCDTaskReadoutStatusString, &marCCDTaskReadoutStatus);
-    addParam(marCCDTaskCorrectStatusString, &marCCDTaskCorrectStatus);
-    addParam(marCCDTaskWritingStatusString, &marCCDTaskWritingStatus);
-    addParam(marCCDTaskDezingerStatusString,&marCCDTaskDezingerStatus);
-    addParam(marCCDFrameShiftString,        &marCCDFrameShift);
-    addParam(marCCDDetectorDistanceString,  &marCCDDetectorDistance);
-    addParam(marCCDBeamXString,             &marCCDBeamX);
-    addParam(marCCDBeamYString,             &marCCDBeamY);
-    addParam(marCCDStartPhiString,          &marCCDStartPhi);
-    addParam(marCCDRotationAxisString,      &marCCDRotationAxis);
-    addParam(marCCDRotationRangeString,     &marCCDRotationRange);
-    addParam(marCCDTwoThetaString,          &marCCDTwoTheta);
-    addParam(marCCDWavelengthString,        &marCCDWavelength);
-    addParam(marCCDFileCommentsString,      &marCCDFileComments);
-    addParam(marCCDDatasetCommentsString,   &marCCDDatasetComments);
+    createParam(marCCDTiffTimeoutString,       asynParamFloat64, &marCCDTiffTimeout);
+    createParam(marCCDOverlapString,           asynParamInt32,   &marCCDOverlap);
+    createParam(marCCDStateString,             asynParamInt32,   &marCCDState);
+    createParam(marCCDStatusString,            asynParamInt32,   &marCCDStatus);
+    createParam(marCCDTaskAcquireStatusString, asynParamInt32,   &marCCDTaskAcquireStatus);
+    createParam(marCCDTaskReadoutStatusString, asynParamInt32,   &marCCDTaskReadoutStatus);
+    createParam(marCCDTaskCorrectStatusString, asynParamInt32,   &marCCDTaskCorrectStatus);
+    createParam(marCCDTaskWritingStatusString, asynParamInt32,   &marCCDTaskWritingStatus);
+    createParam(marCCDTaskDezingerStatusString,asynParamInt32,   &marCCDTaskDezingerStatus);
+    createParam(marCCDFrameShiftString,        asynParamInt32,   &marCCDFrameShift);
+    createParam(marCCDDetectorDistanceString,  asynParamFloat64, &marCCDDetectorDistance);
+    createParam(marCCDBeamXString,             asynParamFloat64, &marCCDBeamX);
+    createParam(marCCDBeamYString,             asynParamFloat64, &marCCDBeamY);
+    createParam(marCCDStartPhiString,          asynParamFloat64, &marCCDStartPhi);
+    createParam(marCCDRotationAxisString,      asynParamOctet,   &marCCDRotationAxis);
+    createParam(marCCDRotationRangeString,     asynParamFloat64, &marCCDRotationRange);
+    createParam(marCCDTwoThetaString,          asynParamFloat64, &marCCDTwoTheta);
+    createParam(marCCDWavelengthString,        asynParamFloat64, &marCCDWavelength);
+    createParam(marCCDFileCommentsString,      asynParamOctet,   &marCCDFileComments);
+    createParam(marCCDDatasetCommentsString,   asynParamOctet,   &marCCDDatasetComments);
     
     /* Create the epicsEvents for signaling to the marCCD task when acquisition starts and stops */
     this->startEventId = epicsEventCreate(epicsEventEmpty);
