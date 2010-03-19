@@ -479,6 +479,7 @@ asynStatus marCCD::writeHeader()
 
     ignoreTwoTheta = 1;
     if (twoTheta[0] != '\0') {
+       errno = 0;
        twoThetaAsDouble = epicsStrtod(twoTheta, &twoThetaEndPtr);
        if (errno == ERANGE || *twoThetaEndPtr != '\0') {
           asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
