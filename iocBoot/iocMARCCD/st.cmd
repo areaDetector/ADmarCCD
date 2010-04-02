@@ -4,6 +4,10 @@ errlogInit(20000)
 dbLoadDatabase("$(AREA_DETECTOR)/dbd/marCCDApp.dbd")
 marCCDApp_registerRecordDeviceDriver(pdbbase) 
 
+epicsEnvSet("PREFIX", "13MARCCD1:")
+epicsEnvSet("PORT",   "MAR")
+epicsEnvSet("QSIZE",  "20")
+
 ###
 # Create the asyn port to talk to the MAR on port 2222
 drvAsynIPPortConfigure("marServer","gse-marccd1.cars.aps.anl.gov:2222")
@@ -13,88 +17,45 @@ asynOctetSetOutputEos("marServer", 0, "\n")
 #asynSetTraceMask("marServer",0,9)
 asynSetTraceIOMask("marServer",0,2)
 
-marCCDConfig("MAR", "marServer", 20, 200000000)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template",  "P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=13MARCCD1:,R=cam1:,PORT=MAR,ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
+marCCDConfig("$(PORT)", "marServer", 20, 200000000)
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/ADBase.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/marCCD.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
 
 # Create a standard arrays plugin
-NDStdArraysConfigure("MARImage", 5, 0, "MAR", 0, -1)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
+NDStdArraysConfigure("Image1", 5, 0, "$(PORT)", 0, -1)
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),NDARRAY_ADDR=0")
 # Make NELEMENTS in the following be a little bigger than 2048*2048
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=13MARCCD1:,R=image1:,PORT=MARImage,ADDR=0,TIMEOUT=1,TYPE=Int16,FTVL=SHORT,NELEMENTS=4200000")
+dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,TYPE=Int16,FTVL=SHORT,NELEMENTS=4200000")
 
-# Create a netCDF file saving plugin
-NDFileNetCDFConfigure("MARFileNetCDF", 450, 0, "MAR", 0)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=netCDF1:,PORT=MARFileNetCDF,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template",      "P=13MARCCD1:,R=netCDF1:,PORT=MARFileNetCDF,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFileNetCDF.template","P=13MARCCD1:,R=netCDF1:,PORT=MARFileNetCDF,ADDR=0,TIMEOUT=1")
-
-# Create a TIFF file saving plugin
-NDFileTIFFConfigure("MARFileTIFF", 20, 0, "MAR", 0)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=TIFF1:,PORT=MARFileTIFF,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template",      "P=13MARCCD1:,R=TIFF1:,PORT=MARFileTIFF,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFileTIFF.template",  "P=13MARCCD1:,R=TIFF1:,PORT=MARFileTIFF,ADDR=0,TIMEOUT=1")
-
-# Create a JPEG file saving plugin
-NDFileJPEGConfigure("MARFileJPEG", 20, 0, "MAR", 0)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=JPEG1:,PORT=MARFileJPEG,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFile.template",      "P=13MARCCD1:,R=JPEG1:,PORT=MARFileJPEG,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDFileJPEG.template",  "P=13MARCCD1:,R=JPEG1:,PORT=MARFileJPEG,ADDR=0,TIMEOUT=1")
-
-# Create an ROI plugin
-NDROIConfigure("MARROI", 5, 0, "MAR", 0, 10, 20, -1)
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDPluginBase.template","P=13MARCCD1:,R=ROI1:,  PORT=MARROI,ADDR=0,TIMEOUT=1,NDARRAY_PORT=MAR,NDARRAY_ADDR=0")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROI.template",       "P=13MARCCD1:,R=ROI1:,  PORT=MARROI,ADDR=0,TIMEOUT=1")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:0:,PORT=MARROI,ADDR=0,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:1:,PORT=MARROI,ADDR=1,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:2:,PORT=MARROI,ADDR=2,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:3:,PORT=MARROI,ADDR=3,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:4:,PORT=MARROI,ADDR=4,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:5:,PORT=MARROI,ADDR=5,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:6:,PORT=MARROI,ADDR=6,TIMEOUT=1,HIST_SIZE=256")
-dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDROIN.template",      "P=13MARCCD1:,R=ROI1:7:,PORT=MARROI,ADDR=7,TIMEOUT=1,HIST_SIZE=256")
+# Load all other plugins using commonPlugins.cmd
+< ../commonPlugins.cmd
 
 # Create "fastSweep" drivers for the MCA record to do on-the-fly scanning of ROI data
-initFastSweep("MARSweepTotal", "MARROI", 8, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
-initFastSweep("MARSweepNet", "MARROI", 8, 2048, "NET_ARRAY", "CALLBACK_PERIOD")
+initFastSweep("SweepTotal1", "ROI1", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
+initFastSweep("SweepNet1",   "ROI1", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
+initFastSweep("SweepTotal2", "ROI2", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
+initFastSweep("SweepNet2",   "ROI2", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
+initFastSweep("SweepTotal3", "ROI3", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
+initFastSweep("SweepNet3",   "ROI3", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
+initFastSweep("SweepTotal4", "ROI4", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
+initFastSweep("SweepNet4",   "ROI4", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
 
 # Load MCA records for the fast sweep drivers
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:0:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:1:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 1)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:2:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 2)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:3:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 3)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:4:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 4)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:5:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 5)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:6:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 6)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:7:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepTotal 7)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI1:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal1,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI2:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal2,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI3:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal3,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI4:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal4,0)")
 
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:0:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:1:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 1)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:2:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 2)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:3:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 3)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:4:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 4)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:5:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 5)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:6:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 6)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=13MARCCD1:,M=ROI1:7:NetArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(MARSweepNet 7)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI1:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet1,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI2:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet2,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI3:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet3,0)")
+dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=ROI4:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet4,0)")
 
-
-#asynSetTraceMask("MARROI",0,3)
-#asynSetTraceIOMask("MARROI",0,4)
-
-# Load scan records
-dbLoadRecords("$(SSCAN)/sscanApp/Db/scan.db", "P=13MARCCD1:,MAXPTS1=2000,MAXPTS2=200,MAXPTS3=20,MAXPTS4=10,MAXPTSH=10")
-
-set_requestfile_path("./")
-set_savefile_path("./autosave")
-set_requestfile_path("$(AREA_DETECTOR)/ADApp/Db")
-set_requestfile_path("$(SSCAN)/sscanApp/Db")
-set_pass0_restoreFile("auto_settings.sav")
-set_pass1_restoreFile("auto_settings.sav")
-save_restoreSet_status_prefix("13MARCCD1:")
-dbLoadRecords("$(AUTOSAVE)/asApp/Db/save_restoreStatus.db", "P=13MARCCD1:")
+#asynSetTraceMask("$(PORT)",0,3)
+#asynSetTraceIOMask("$(PORT)",0,4)
 
 iocInit()
 
 # save things every thirty seconds
-create_monitor_set("auto_settings.req", 30,"P=13MARCCD1:,D=cam1:")
+create_monitor_set("auto_settings.req", 30,"P=$(PREFIX),D=cam1:")
