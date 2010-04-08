@@ -52,6 +52,11 @@ marCCDApp_LIBS_Linux        += tiff jpeg z
 # To use system versions of these libraries use this line
 #marCCDApp_SYS_LIBS_Linux    += tiff jpeg z
 
+marCCDApp_SYS_LIBS_solaris   += tiff
+
+# use libs supplied with areaDetector (in tiffSupport)
+marCCDApp_LIBS_solaris += NeXusCPP NeXus hdf5_cpp hdf5 mxml jpeg sz z
+
 #=============================
 
 include $(TOP)/configure/RULES
