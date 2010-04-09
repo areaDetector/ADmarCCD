@@ -7,6 +7,8 @@ marCCDApp_registerRecordDeviceDriver(pdbbase)
 epicsEnvSet("PREFIX", "13MARCCD1:")
 epicsEnvSet("PORT",   "MAR")
 epicsEnvSet("QSIZE",  "20")
+epicsEnvSet("XSIZE",  "2048")
+epicsEnvSet("YSIZE",  "2048")
 
 ###
 # Create the asyn port to talk to the MAR on port 2222
