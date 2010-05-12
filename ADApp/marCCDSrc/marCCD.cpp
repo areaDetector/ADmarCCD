@@ -100,6 +100,7 @@ typedef enum {
 #define marCCDTaskCorrectStatusString  "MAR_CORRECT_STATUS"
 #define marCCDTaskWritingStatusString  "MAR_WRITING_STATUS"
 #define marCCDTaskDezingerStatusString "MAR_DEZINGER_STATUS"
+#define marCCDStabilityString          "MAR_STABILITY"
 #define marCCDFrameShiftString         "MAR_FRAME_SHIFT"
 #define marCCDDetectorDistanceString   "MAR_DETECTOR_DISTANCE"
 #define marCCDBeamXString              "MAR_BEAM_X"
@@ -127,6 +128,7 @@ public:
                  
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     void report(FILE *fp, int details);
     void marCCDTask();          /**< This should be private but is called from C, must be public */
     void getImageDataTask();    /**< This should be private but is called from C, must be public */
@@ -143,6 +145,7 @@ protected:
     int marCCDTaskCorrectStatus;
     int marCCDTaskWritingStatus;
     int marCCDTaskDezingerStatus;
+    int marCCDStability;
     int marCCDFrameShift;
     int marCCDDetectorDistance;
     int marCCDBeamX;
@@ -467,10 +470,10 @@ asynStatus marCCD::writeHeader()
     getDoubleParam(marCCDBeamY, &beamY);
     getDoubleParam(ADAcquireTime, &exposureTime);
     getDoubleParam(marCCDStartPhi, &startPhi);
+    getStringParam(marCCDRotationAxis, sizeof(rotationAxis), rotationAxis);
     getDoubleParam(marCCDRotationRange, &rotationRange);
     getDoubleParam(marCCDTwoTheta, &twoTheta);
     getDoubleParam(marCCDWavelength, &wavelength);
-    getStringParam(marCCDRotationAxis, sizeof(rotationAxis), rotationAxis);
     getStringParam(marCCDFileComments, sizeof(fileComments), fileComments);
     getStringParam(marCCDDatasetComments, sizeof(datasetComments), datasetComments);
 
@@ -479,18 +482,21 @@ asynStatus marCCD::writeHeader()
                   "detector_distance=%f,"
                   "beam_x=%f,"
                   "beam_y=%f,"
-                  "exposure_time=%f,"
-                  "start_phi=%f,"
-                  "rotation_axis=%s,"
-                  "rotation_range=%f,"
-                  "twotheta=%f"
-                  "source_wavelength=%f,"
-                  "file_comments=%s,"
-                  "dataset_comments=%s",
+                  "exposure_time=%f,",
                   detectorDistance,
                   beamX,
                   beamY,
-                  exposureTime,
+                  exposureTime);
+    status = writeServer(this->toServer);
+    epicsSnprintf(this->toServer, sizeof(this->toServer),
+                  "header,"
+                  "start_phi=%f,"
+                  "rotation_axis=%s,"
+                  "rotation_range=%f,"
+                  "twotheta=%f,"
+                  "source_wavelength=%f,"
+                  "file_comments=%s,"
+                  "dataset_comments=%s",
                   startPhi,
                   rotationAxis,
                   rotationRange,
@@ -545,6 +551,7 @@ int marCCD::getState()
 asynStatus marCCD::getConfig()
 {
     int sizeX, sizeY, binX, binY, imageSize, frameShift;
+    double stability;
     asynStatus status;
     
     status = writeReadServer("get_size", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
@@ -565,6 +572,10 @@ asynStatus marCCD::getConfig()
                               MARCCD_SERVER_TIMEOUT);
     sscanf(this->fromServer, "%d", &frameShift);
     setIntegerParam(marCCDFrameShift, frameShift);
+    status = writeReadServer("get_stability", this->fromServer, sizeof(this->fromServer),
+                              MARCCD_SERVER_TIMEOUT);
+    sscanf(this->fromServer, "%lf", &stability);
+    setDoubleParam(marCCDStability, stability);
     callParamCallbacks();
     return(asynSuccess);
 }
@@ -982,6 +993,42 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return status;
 }
 
+/** Called when asyn clients call pasynFloat64->write().
+  * This function performs actions for some parameters.
+  * For all parameters it sets the value in the parameter library and calls any registered callbacks..
+  * \param[in] pasynUser pasynUser structure that encodes the reason and address.
+  * \param[in] value Value to write. */
+asynStatus marCCD::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
+{
+    int function = pasynUser->reason;
+    asynStatus status = asynSuccess;
+    const char *functionName = "writeFloat64";
+
+    status = setDoubleParam(function, value);
+
+    if (function == marCCDStability) {
+         epicsSnprintf(this->toServer, sizeof(this->toServer), "set_stability,%f", value);
+         writeServer(this->toServer);
+         getConfig();
+    } else {
+        /* If this parameter belongs to a base class call its method */
+        if (function < FIRST_MARCCD_PARAM) status = ADDriver::writeFloat64(pasynUser, value);
+    }
+        
+    /* Do callbacks so higher layers see any changes */
+    callParamCallbacks();
+    
+    if (status) 
+        asynPrint(pasynUser, ASYN_TRACE_ERROR, 
+              "%s:%s: error, status=%d function=%d, value=%f\n", 
+              driverName, functionName, status, function, value);
+    else        
+        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, 
+              "%s:%s: function=%d, value=%f\n", 
+              driverName, functionName, function, value);
+    return status;
+}
+
 
 
 /** Report status of the driver.
@@ -1049,6 +1096,7 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     createParam(marCCDTaskCorrectStatusString, asynParamInt32,   &marCCDTaskCorrectStatus);
     createParam(marCCDTaskWritingStatusString, asynParamInt32,   &marCCDTaskWritingStatus);
     createParam(marCCDTaskDezingerStatusString,asynParamInt32,   &marCCDTaskDezingerStatus);
+    createParam(marCCDStabilityString,         asynParamFloat64, &marCCDStability);
     createParam(marCCDFrameShiftString,        asynParamInt32,   &marCCDFrameShift);
     createParam(marCCDDetectorDistanceString,  asynParamFloat64, &marCCDDetectorDistance);
     createParam(marCCDBeamXString,             asynParamFloat64, &marCCDBeamX);
