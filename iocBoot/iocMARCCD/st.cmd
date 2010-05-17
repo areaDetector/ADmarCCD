@@ -9,6 +9,7 @@ epicsEnvSet("PORT",   "MAR")
 epicsEnvSet("QSIZE",  "20")
 epicsEnvSet("XSIZE",  "2048")
 epicsEnvSet("YSIZE",  "2048")
+epicsEnvSet("NCHANS", "2048")
 
 ###
 # Create the asyn port to talk to the MAR on port 2222
@@ -32,27 +33,6 @@ dbLoadRecords("$(AREA_DETECTOR)/ADApp/Db/NDStdArrays.template", "P=$(PREFIX),R=i
 
 # Load all other plugins using commonPlugins.cmd
 < ../commonPlugins.cmd
-
-# Create "fastSweep" drivers for the MCA record to do on-the-fly scanning of ROI data
-initFastSweep("SweepTotal1", "STATS1", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
-initFastSweep("SweepNet1",   "STATS1", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
-initFastSweep("SweepTotal2", "STATS2", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
-initFastSweep("SweepNet2",   "STATS2", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
-initFastSweep("SweepTotal3", "STATS3", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
-initFastSweep("SweepNet3",   "STATS3", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
-initFastSweep("SweepTotal4", "STATS4", 1, 2048, "TOTAL_ARRAY", "CALLBACK_PERIOD")
-initFastSweep("SweepNet4",   "STATS4", 1, 2048, "NET_ARRAY",   "CALLBACK_PERIOD")
-
-# Load MCA records for the fast sweep drivers
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS1:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal1 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS2:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal2 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS3:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal3 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS4:TotalArray,DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepTotal4 0)")
-
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS1:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet1 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS2:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet2 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS3:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet3 0)")
-dbLoadRecords("$(MCA)/mcaApp/Db/mca.db", "P=$(PREFIX),M=STATS4:NetArray,  DTYP=asynMCA,NCHAN=2048,INP=@asyn(SweepNet4 0)")
 
 #asynSetTraceMask("$(PORT)",0,3)
 #asynSetTraceIOMask("$(PORT)",0,4)
