@@ -129,7 +129,8 @@ public:
     /* These are the methods that we override from ADDriver */
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
-    void report(FILE *fp, int details);
+    virtual void setShutter(int open);
+    virtual void report(FILE *fp, int details);
     void marCCDTask();          /**< This should be private but is called from C, must be public */
     void getImageDataTask();    /**< This should be private but is called from C, must be public */
     epicsEventId stopEventId;   /**< This should be private but is accessed from C, must be public */
@@ -170,7 +171,6 @@ private:
     asynStatus getConfig();
     void acquireFrame(double exposureTime, int useShutter);
     void readoutFrame(int bufferNumber, const char* fileName, int wait);
-    void setShutter(int open);
     void saveFile(int correctedFlag, int wait);
     void getImageData();
    
@@ -972,8 +972,6 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
         getIntegerParam(ADFrameType, &frameType);
         if (frameType == marCCDFrameRaw) correctedFlag=0; else correctedFlag=1;
         saveFile(correctedFlag, 1);
-    } else if (function == ADShutterControl) {
-        setShutter(value);
     } else {
         /* If this parameter belongs to a base class call its method */
         if (function < FIRST_MARCCD_PARAM) status = ADDriver::writeInt32(pasynUser, value);
