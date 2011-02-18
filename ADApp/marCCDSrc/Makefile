@@ -7,9 +7,11 @@ include $(TOP)/configure/CONFIG
 # We add _AD (for areaDetector) to the library name to avoid conflict
 # with the library marCCD in the ccd module
 LIBRARY_IOC_Linux = marCCD_AD
+LIBRARY_IOC_Darwin = marCCD_AD
 LIB_SRCS += marCCD.cpp
 
 PROD_IOC_Linux += marCCDApp
+PROD_IOC_Darwin += marCCDApp
 
 # <name>.dbd will be created from <name>Include.dbd
 DBD += marCCDApp.dbd
