@@ -187,7 +187,7 @@ private:
 };
 
 
-#define NUM_MARCCD_PARAMS (&LAST_MARCCD_PARAM - &FIRST_MARCCD_PARAM + 1)
+#define NUM_MARCCD_PARAMS ((int)(&LAST_MARCCD_PARAM - &FIRST_MARCCD_PARAM + 1))
 
 void getImageDataTaskC(marCCD *pmarCCD)
 {
@@ -225,25 +225,25 @@ void marCCD::getImageDataTask()
 void marCCD::getImageData()
 {
     char fullFileName[MAX_FILENAME_LEN];
-    int dims[2];
+    size_t dims[2];
+    int itemp;
     int imageCounter;
     NDArray *pImage;
-    asynStatus status;
     char statusMessage[MAX_MESSAGE_SIZE];
     const char *functionName = "getImageData";
 
     /* Inquire about the image dimensions */
     getConfig();
     getStringParam(NDFullFileName, MAX_FILENAME_LEN, fullFileName);
-    getIntegerParam(NDArraySizeX, &dims[0]);
-    getIntegerParam(NDArraySizeY, &dims[1]);
+    getIntegerParam(NDArraySizeX, &itemp); dims[0] = itemp;
+    getIntegerParam(NDArraySizeY, &itemp); dims[1] = itemp;
     getIntegerParam(NDArrayCounter, &imageCounter);
     pImage = this->pNDArrayPool->alloc(2, dims, NDUInt16, 0, NULL);
 
     epicsSnprintf(statusMessage, sizeof(statusMessage), "Reading TIFF file %s", fullFileName);
     setStringParam(ADStatusMessage, statusMessage);
     callParamCallbacks();
-    status = readTiff(fullFileName, pImage); 
+    readTiff(fullFileName, pImage); 
 
     /* Put the frame number and time stamp into the buffer */
     pImage->uniqueId = imageCounter;
@@ -280,7 +280,8 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
     double deltaTime;
     int status=-1;
     const char *functionName = "readTiff";
-    int size, totalSize;
+    int size;
+    size_t totalSize;
     int numStrips, strip;
     char *buffer;
     TIFF *tiff=NULL;
@@ -1083,7 +1084,8 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     int status = asynSuccess;
     epicsTimerQueueId timerQ;
     const char *functionName = "marCCD";
-    int dims[2];
+    int itemp;
+    size_t dims[2];
 
     createParam(marCCDTiffTimeoutString,       asynParamFloat64, &marCCDTiffTimeout);
     createParam(marCCDOverlapString,           asynParamInt32,   &marCCDOverlap);
@@ -1142,8 +1144,8 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     status = getConfig();
 
     /* Allocate the raw buffer we use to readTiff files.  Only do this once */
-    getIntegerParam(ADMaxSizeX, &dims[0]);
-    getIntegerParam(ADMaxSizeY, &dims[1]);
+    getIntegerParam(ADMaxSizeX, &itemp); dims[0] = itemp;
+    getIntegerParam(ADMaxSizeY, &itemp); dims[1] = itemp;
     this->pData = this->pNDArrayPool->alloc(2, dims, NDInt16, 0, NULL);
 
     /* Set some default values for parameters */
