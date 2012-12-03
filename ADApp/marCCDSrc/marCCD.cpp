@@ -216,9 +216,7 @@ void marCCD::getImageDataTask()
             epicsThreadSleep(MARCCD_POLL_DELAY);
             status = getState();
         }
-        this->lock();
         getImageData();
-        this->unlock();
     }
 }
 
@@ -318,7 +316,9 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
             fd = -1;
         }
         /* Sleep, but check for stop event, which can be used to abort a long acquisition */
+        unlock();
         status = epicsEventWaitWithTimeout(this->stopEventId, FILE_READ_DELAY);
+        lock();
         if (status == epicsEventWaitOK) {
             return(asynError);
         }
@@ -392,7 +392,9 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         if (tiff != NULL) TIFFClose(tiff);
         tiff = NULL;
         /* Sleep, but check for stop event, which can be used to abort a long acquisition */
+        unlock();
         status = epicsEventWaitWithTimeout(this->stopEventId, FILE_READ_DELAY);
+        lock();
         if (status == epicsEventWaitOK) {
             return(asynError);
         }
@@ -592,10 +594,11 @@ extern "C" {static void timerCallbackC(void *drvPvt)
 void marCCD::setShutter(int open)
 {
     ADShutterMode_t shutterMode;
+    int itemp;
     double delay;
     double shutterOpenDelay, shutterCloseDelay;
     
-    getIntegerParam(ADShutterMode, (int *)&shutterMode);
+    getIntegerParam(ADShutterMode, &itemp); shutterMode = (ADShutterMode_t)itemp;
     getDoubleParam(ADShutterOpenDelay, &shutterOpenDelay);
     getDoubleParam(ADShutterCloseDelay, &shutterCloseDelay);
     
@@ -811,10 +814,10 @@ void marCCD::marCCDTask()
         if (!acquire) {
             setStringParam(ADStatusMessage, "Waiting for acquire command");
             callParamCallbacks();
-            /* Release the lock while we wait for an event that says acquire has started, then lock again */
-            this->unlock();
             asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, 
                 "%s:%s: waiting for acquire to start\n", driverName, functionName);
+            /* Release the lock while we wait for an event that says acquire has started, then lock again */
+            this->unlock();
             status = epicsEventWait(this->startEventId);
             this->lock();
             getIntegerParam(ADAcquire, &acquire);
