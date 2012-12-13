@@ -10,11 +10,13 @@ LIBRARY_IOC_Linux = marCCD_AD
 LIBRARY_IOC_Darwin = marCCD_AD
 LIB_SRCS += marCCD.cpp
 
-PROD_IOC_Linux += marCCDApp
-PROD_IOC_Darwin += marCCDApp
+PROD_NAME = marCCDApp
+PROD_IOC_Linux += $(PROD_NAME)
+PROD_IOC_Darwin += $(PROD_NAME)
 
 # <name>.dbd will be created from <name>Include.dbd
-DBD += marCCDApp.dbd
+DBD += $(PROD_NAME).dbd
+$(PROD_NAME)_DBD += marCCD_ADSupport.dbd
 DBD += marCCD_ADSupport.dbd
 
 # <name>_registerRecordDeviceDriver.cpp will be created from <name>.dbd
