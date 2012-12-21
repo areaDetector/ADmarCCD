@@ -351,15 +351,15 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         status = TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &uval);
         if (uval != (epicsUInt32)pImage->dims[0].size) {
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-                "%s::%s, image width incorrect =%u, should be %d\n",
-                driverName, functionName, uval, pImage->dims[0].size);
+                "%s::%s, image width incorrect =%u, should be %lu\n",
+                driverName, functionName, uval, (unsigned long)pImage->dims[0].size);
             goto retry;
         }
         status = TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &uval);
         if (uval != (epicsUInt32)pImage->dims[1].size) {
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-                "%s::%s, image length incorrect =%u, should be %d\n",
-                driverName, functionName, uval, pImage->dims[1].size);
+                "%s::%s, image length incorrect =%u, should be %lu\n",
+                driverName, functionName, uval, (unsigned long)pImage->dims[1].size);
             goto retry;
         }
         numStrips= TIFFNumberOfStrips(tiff);
@@ -381,8 +381,8 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
         if (totalSize > pImage->dataSize) {
             status = asynError;
             asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR,
-                "%s::%s, file size too large =%d, must be <= %d\n",
-                driverName, functionName, totalSize, pImage->dataSize);
+                "%s::%s, file size too large =%lu, must be <= %lu\n",
+                driverName, functionName, (unsigned long)totalSize, (unsigned long)pImage->dataSize);
             goto retry;
         }
         /* Sucesss! */
@@ -443,8 +443,8 @@ asynStatus marCCD::readServer(char *input, size_t maxChars, double timeout)
     status = pasynOctetSyncIO->read(pasynUser, input, maxChars, timeout,
                                     &nread, &eomReason);
     if (status) asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                    "%s:%s, timeout=%f, status=%d received %d bytes\n%s\n",
-                    driverName, functionName, timeout, status, nread, input);
+                    "%s:%s, timeout=%f, status=%d received %lu bytes\n%s\n",
+                    driverName, functionName, timeout, status, (unsigned long)nread, input);
     /* Set output string so it can get back to EPICS */
     setStringParam(ADStringFromServer, input);
     callParamCallbacks();
