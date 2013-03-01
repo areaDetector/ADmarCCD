@@ -26,6 +26,7 @@ PROD_SRCS += marCCDApp_registerRecordDeviceDriver.cpp marCCDAppMain.cpp
 PROD_LIBS += marCCD_AD
 
 include $(TOP)/ADApp/commonDriverMakefile
+$(PROD_NAME)_DBD += drvAsynIPPort.dbd
 
 #=============================
 
