@@ -200,12 +200,17 @@ void marCCD::getImageDataTask()
 {
     int status;
   
+    this->lock();
     while (1) {
+        this->unlock();
         status = epicsEventWait(this->imageEventId);
+        this->lock();
         /* Wait for the correction to complete */
         status = getState();
         while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
+            this->unlock();
             epicsThreadSleep(MARCCD_POLL_DELAY);
+            this->lock();
             status = getState();
         }
 
@@ -213,7 +218,9 @@ void marCCD::getImageDataTask()
         status = getState();
         while (TEST_TASK_STATUS(status, TASK_WRITE, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
                TASK_STATE(status) >= 8) {
+            this->unlock();
             epicsThreadSleep(MARCCD_POLL_DELAY);
+            this->lock();
             status = getState();
         }
         getImageData();
