@@ -226,7 +226,6 @@ private:
     void collectNormal();
     void collectSeries();
     void acquireFrame(double exposureTime, int useShutter);
-    void acquireSeries(double exposureTime, int useShutter);
     void readoutFrame(int bufferNumber, const char* fileName, int wait);
     void saveFile(int correctedFlag, int wait);
     asynStatus getImageData();
@@ -1180,8 +1179,9 @@ void marCCD::collectSeries()
      
     /* Restore the TIFF timeout */
     setDoubleParam(marCCDTiffTimeout, tiffTimeout);
-    
+        
     if (useShutter) setShutter(0);
+    setIntegerParam(ADAcquire, 0);
     /* Call the callbacks to update any changes */
     callParamCallbacks();
 }
