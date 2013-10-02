@@ -312,15 +312,15 @@ asynStatus marCCD::getImageData()
     callParamCallbacks();
     status = readTiff(fullFileName, pImage); 
 
-    /* Put the frame number and time stamp into the buffer */
-    pImage->uniqueId = imageCounter;
-    pImage->timeStamp = this->acqStartTime.secPastEpoch + this->acqStartTime.nsec / 1.e9;
-    updateTimeStamp(&pImage->epicsTS);
-
-    /* Get any attributes that have been defined for this driver */        
-    this->getAttributes(pImage->pAttributeList);
-
     if (arrayCallbacks) {
+        /* Put the frame number and time stamp into the buffer */
+        pImage->uniqueId = imageCounter;
+        pImage->timeStamp = this->acqStartTime.secPastEpoch + this->acqStartTime.nsec / 1.e9;
+        updateTimeStamp(&pImage->epicsTS);
+
+        /* Get any attributes that have been defined for this driver */        
+        this->getAttributes(pImage->pAttributeList);
+
         /* Call the NDArray callback */
         /* Must release the lock here, or we can get into a deadlock, because we can
          * block on the plugin lock, and the plugin can be calling us */
