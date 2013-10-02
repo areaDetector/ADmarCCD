@@ -1235,9 +1235,13 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
             /* Send an event to wake up the marCCD task.  */
             epicsEventSignal(this->startEventId);
         } 
-        if (!value && acquiring) {
-            /* This was a command to stop acquisition */
-            epicsEventSignal(this->stopEventId);
+        if (!value) {
+            /* Send an abort command to be safe */
+            writeServer("abort");
+            if (acquiring) {
+                /* Send signal to stop acquisition */
+                epicsEventSignal(this->stopEventId);
+            }
         }
     } else if ((function == ADBinX) ||
                (function == ADBinY)) {
