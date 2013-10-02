@@ -226,7 +226,7 @@ private:
     void collectNormal();
     void collectSeries();
     void acquireFrame(double exposureTime, int useShutter);
-    void readoutFrame(int bufferNumber, const char* fileName, int wait);
+    asynStatus readoutFrame(int bufferNumber, const char* fileName, int wait);
     void saveFile(int correctedFlag, int wait);
     asynStatus getImageData();
    
@@ -800,18 +800,18 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
 
 }
 
-void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
+asynStatus marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
 {
     int status;
     
      /* Wait for the readout task to be done with the previous frame, if any */ 
 printf("readoutFrame, waiting for TASK_READ to end\n");   
     status = getState();
-    while ((TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
-           (TASK_STATE(status) >= TASK_STATE_BUSY)) &&
-           (TASK_STATE(status) != TASK_STATE_ERROR)) {
+    while (TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
+           TASK_STATE(status) >= TASK_STATE_BUSY) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
+        if (TASK_STATE(status) == TASK_STATE_ERROR) return asynError;
     }
 
     if (fileName && strlen(fileName)!=0) {
@@ -826,42 +826,43 @@ printf("readoutFrame, waiting for TASK_READ to end\n");
     /* Wait for the readout to start */
 printf("readoutFrame, waiting for TASK_READ to start\n");   
     status = getState();
-    while (!TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) &&
-            (TASK_STATE(status) != TASK_STATE_ERROR)) {
+    while (!TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
+        if (TASK_STATE(status) == TASK_STATE_ERROR) return asynError;
     }
 
     /* Wait for the readout to complete */
 printf("readoutFrame, waiting for TASK_READ to end again\n");   
     status = getState();
-    while (TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) &&
-          (TASK_STATE(status) != TASK_STATE_ERROR)) {
+    while (TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
+        if (TASK_STATE(status) == TASK_STATE_ERROR) return asynError;
     }
 
-    if (!wait) return;
+    if (!wait) return asynSuccess;
     
     /* Wait for the correction complete */
 printf("readoutFrame, waiting for TASK_CORREC\n");   
     status = getState();
-    while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) &&
-          (TASK_STATE(status) != TASK_STATE_ERROR)) {
+    while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
+        if (TASK_STATE(status) == TASK_STATE_ERROR) return asynError;
     }
 
     /* If the filename was specified wait for the write to complete */
-    if (!fileName || strlen(fileName)==0) return;
+    if (!fileName || strlen(fileName)==0) return asynSuccess;
 printf("readoutFrame, waiting for TASK_WRITE\n");   
     status = getState();
-    while ((TEST_TASK_STATUS(status, TASK_WRITE, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
-           (TASK_STATE(status) >= TASK_STATE_BUSY)) &&
-           (TASK_STATE(status) != TASK_STATE_ERROR)) {
+    while (TEST_TASK_STATUS(status, TASK_WRITE, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
+           (TASK_STATE(status) >= TASK_STATE_BUSY)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
         status = getState();
+        if (TASK_STATE(status) == TASK_STATE_ERROR) return asynError;
     }
+    return asynSuccess;
 }
  
 void marCCD::saveFile(int correctedFlag, int wait)
