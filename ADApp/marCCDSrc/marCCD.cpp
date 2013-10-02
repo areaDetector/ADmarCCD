@@ -1061,6 +1061,7 @@ void marCCD::collectSeries()
     int numImages;
     int numImagesCounter;
     int imageMode;
+    int autoIncrement;
     int triggerMode;
     int acquire;
     int overlap;
@@ -1094,6 +1095,7 @@ void marCCD::collectSeries()
     }
     getIntegerParam(ADImageMode,      &imageMode);
     getIntegerParam(ADAcquire,        &acquire);
+    getIntegerParam(NDAutoIncrement,  &autoIncrement);
     getIntegerParam(ADNumImages,      &numImages);
     getDoubleParam( ADAcquireTime,    &acquireTime);
     getDoubleParam( ADAcquirePeriod,  &acquirePeriod);
@@ -1121,7 +1123,6 @@ void marCCD::collectSeries()
     }
     len = epicsSnprintf(fullFileTemplate, sizeof(fullFileTemplate), "%s%%%d.%dd.tif",
                         seriesFileTemplate, seriesFileDigits, seriesFileDigits); 
-printf("fullFileTemplate=%s\n", fullFileTemplate);
     if (len < 0) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
             "%s:%s: error creating file template\n",
@@ -1179,7 +1180,6 @@ printf("fullFileTemplate=%s\n", fullFileTemplate);
         len = epicsSnprintf(fullFileName, sizeof(fullFileName), fullFileTemplate, 
                             filePath, fileName, fileNumber, i+firstFileNumber);
         setStringParam(NDFullFileName, fullFileName);
-printf("Full file name = %s\n", fullFileName);
         callParamCallbacks();
         status = getImageData();
         // If getImagedata() returns error then either it has timed out or the run has been aborted
@@ -1201,6 +1201,10 @@ printf("Full file name = %s\n", fullFileName);
     setDoubleParam(marCCDTiffTimeout, tiffTimeout);
         
     if (useShutter) setShutter(0);
+    if (autoIncrement) {
+        fileNumber++;
+        setIntegerParam(NDFileNumber, fileNumber);
+    }
     setIntegerParam(ADAcquire, 0);
     /* Call the callbacks to update any changes */
     callParamCallbacks();
