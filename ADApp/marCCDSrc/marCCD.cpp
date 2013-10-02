@@ -1119,8 +1119,9 @@ void marCCD::collectSeries()
             driverName, functionName);
         return;
     }
-    len = epicsSnprintf(fullFileTemplate, sizeof(fullFileTemplate), "%s_%d.%d%%d.tif",
+    len = epicsSnprintf(fullFileTemplate, sizeof(fullFileTemplate), "%s%%%d.%dd.tif",
                         seriesFileTemplate, seriesFileDigits, seriesFileDigits); 
+printf("fullFileTemplate=%s\n", fullFileTemplate);
     if (len < 0) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
             "%s:%s: error creating file template\n",
