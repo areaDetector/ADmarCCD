@@ -984,13 +984,16 @@ void marCCD::collectNormal()
             if (autoSave) createFileName(MAX_FILENAME_LEN, fullFileName);
             acquireFrame(acquireTime, useShutter);
             if (frameType == marCCDFrameNormal) bufferNumber=0; else bufferNumber=3;
-            readoutFrame(bufferNumber, fullFileName, wait);
+            status = readoutFrame(bufferNumber, fullFileName, wait);
+            if (status) return;
             break;
         case marCCDFrameBackground:
             acquireFrame(.001, 0);
-            readoutFrame(1, NULL, 1);
+            status = readoutFrame(1, NULL, 1);
+            if (status) return;
             acquireFrame(.001, 0);
-            readoutFrame(2, NULL, 1);
+            status = readoutFrame(2, NULL, 1);
+            if (status) return;
             writeServer("dezinger,1");
             status = getState();
             while (TEST_TASK_STATUS(status, TASK_DEZINGER, 
@@ -1004,7 +1007,8 @@ void marCCD::collectNormal()
             acquireFrame(acquireTime/2., useShutter);
             readoutFrame(2, NULL, 1);
             acquireFrame(acquireTime/2., useShutter);
-            readoutFrame(0, NULL, 1);
+            status = readoutFrame(0, NULL, 1);
+            if (status) return;
             writeServer("dezinger,0");
             status = getState();
             while (TEST_TASK_STATUS(status, TASK_DEZINGER, 
