@@ -803,7 +803,8 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
 {
     int status;
     
-     /* Wait for the readout task to be done with the previous frame, if any */    
+     /* Wait for the readout task to be done with the previous frame, if any */ 
+printf("readoutFrame, waiting for TASK_READ to end\n");   
     status = getState();
     while (TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
            TASK_STATE(status) >= 8) {
@@ -821,6 +822,7 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
     writeServer(this->toServer);
 
     /* Wait for the readout to start */
+printf("readoutFrame, waiting for TASK_READ to start\n");   
     status = getState();
     while (!TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
@@ -828,6 +830,7 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
     }
 
     /* Wait for the readout to complete */
+printf("readoutFrame, waiting for TASK_READ to end again\n");   
     status = getState();
     while (TEST_TASK_STATUS(status, TASK_READ, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
@@ -837,6 +840,7 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
     if (!wait) return;
     
     /* Wait for the correction complete */
+printf("readoutFrame, waiting for TASK_CORREC\n");   
     status = getState();
     while (TEST_TASK_STATUS(status, TASK_CORRECT, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED)) {
         epicsThreadSleep(MARCCD_POLL_DELAY);
@@ -845,6 +849,7 @@ void marCCD::readoutFrame(int bufferNumber, const char* fileName, int wait)
 
     /* If the filename was specified wait for the write to complete */
     if (!fileName || strlen(fileName)==0) return;
+printf("readoutFrame, waiting for TASK_WRITE\n");   
     status = getState();
     while (TEST_TASK_STATUS(status, TASK_WRITE, TASK_STATUS_EXECUTING | TASK_STATUS_QUEUED) || 
            TASK_STATE(status) >= 8) {
