@@ -985,15 +985,15 @@ void marCCD::collectNormal()
             acquireFrame(acquireTime, useShutter);
             if (frameType == marCCDFrameNormal) bufferNumber=0; else bufferNumber=3;
             status = readoutFrame(bufferNumber, fullFileName, wait);
-            if (status) return;
+            if (status) goto cleanup;
             break;
         case marCCDFrameBackground:
             acquireFrame(.001, 0);
             status = readoutFrame(1, NULL, 1);
-            if (status) return;
+            if (status) goto cleanup;
             acquireFrame(.001, 0);
             status = readoutFrame(2, NULL, 1);
-            if (status) return;
+            if (status) goto cleanup;
             writeServer("dezinger,1");
             status = getState();
             while (TEST_TASK_STATUS(status, TASK_DEZINGER, 
@@ -1008,7 +1008,7 @@ void marCCD::collectNormal()
             readoutFrame(2, NULL, 1);
             acquireFrame(acquireTime/2., useShutter);
             status = readoutFrame(0, NULL, 1);
-            if (status) return;
+            if (status) goto cleanup;
             writeServer("dezinger,0");
             status = getState();
             while (TEST_TASK_STATUS(status, TASK_DEZINGER, 
@@ -1043,6 +1043,7 @@ void marCCD::collectNormal()
         else getImageData();
     }
 
+    cleanup:
     if (imageMode == ADImageMultiple) {
         getIntegerParam(ADNumImages, &numImages);
         if (numImagesCounter >= numImages) setIntegerParam(ADAcquire, 0);
