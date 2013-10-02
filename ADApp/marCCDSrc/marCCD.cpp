@@ -654,10 +654,10 @@ asynStatus marCCD::getConfig()
     asynStatus status;
     
     if (serverMode == 2) {
-        status = writeReadServer("get_gating", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
-        if (status) return(status);
-        sscanf(this->fromServer, "%d", &gatingMode);
-        setIntegerParam(marCCDGateMode, gatingMode);
+        //status = writeReadServer("get_gating", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
+        //if (status) return(status);
+        //sscanf(this->fromServer, "%d", &gatingMode);
+        //setIntegerParam(marCCDGateMode, gatingMode);
         status = writeReadServer("get_readout_mode", this->fromServer, sizeof(this->fromServer), MARCCD_SERVER_TIMEOUT);
         if (status) return(status);
         sscanf(this->fromServer, "%d", &readoutMode);
