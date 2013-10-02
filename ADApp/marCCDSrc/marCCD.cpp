@@ -1179,6 +1179,7 @@ printf("fullFileTemplate=%s\n", fullFileTemplate);
         len = epicsSnprintf(fullFileName, sizeof(fullFileName), fullFileTemplate, 
                             filePath, fileName, fileNumber, i+firstFileNumber);
         setStringParam(NDFullFileName, fullFileName);
+printf("Full file name = %s\n", fullFileName);
         callParamCallbacks();
         status = getImageData();
         // If getImagedata() returns error then either it has timed out or the run has been aborted
