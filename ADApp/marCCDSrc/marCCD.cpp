@@ -1135,15 +1135,33 @@ void marCCD::collectSeries()
     if (useShutter) setShutter(1);
     switch (imageMode) {
         case marCCDImageSeriesTriggered:
-            epicsSnprintf(this->toServer, sizeof(this->toServer), 
-                "start_series_triggered,%d,%d,%d,%s,%s,%d", 
-                triggerMode, numImages, firstFileNumber, 
-                baseFileName, fileSuffix, seriesFileDigits);
+            int itemp;
+            
+            switch (triggerMode) {
+                case marCCDTriggerInternal:
+                case marCCDTriggerFrame:
+                    itemp = 0;
+                    break;
+                case marCCDTriggerBulb:
+                    itemp = 1;
+                    break;
+            }
+            if (triggerMode == marCCDTriggerTimed) {
+                epicsSnprintf(this->toServer, sizeof(this->toServer), 
+                    "start_series_triggered,%f,%d,%d,%s,%s,%d", 
+                    acquireTime, numImages, firstFileNumber, 
+                    baseFileName, fileSuffix, seriesFileDigits);
+            } else {
+                epicsSnprintf(this->toServer, sizeof(this->toServer), 
+                    "start_series_triggered,%d,%d,%d,%s,%s,%d", 
+                    itemp, numImages, firstFileNumber, 
+                    baseFileName, fileSuffix, seriesFileDigits);
+            }
             writeServer(this->toServer);
             break;
         case marCCDImageSeriesTimed:
             epicsSnprintf(this->toServer, sizeof(this->toServer), 
-                "start_series_triggered,%d,%d,%f,%f,%s,%s,%d", 
+                "start_series_timed,%d,%d,%f,%f,%s,%s,%d", 
                 numImages, firstFileNumber, acquireTime, acquirePeriod, 
                 baseFileName, fileSuffix, seriesFileDigits);
             writeServer(this->toServer);
