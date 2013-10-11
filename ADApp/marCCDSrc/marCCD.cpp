@@ -136,6 +136,7 @@ static const int numReadoutModes[] = {0, 0, 4};
 #define marCCDTiffTimeoutString        "MAR_TIFF_TIMEOUT"
 #define marCCDSeriesFileTemplateString "MAR_SERIES_FILE_TEMPLATE"
 #define marCCDSeriesFileDigitsString   "MAR_SERIES_FILE_DIGITS"
+#define marCCDSeriesFileFirstString    "MAR_SERIES_FILE_FIRST"
 #define marCCDOverlapString            "MAR_OVERLAP"
 #define marCCDStateString              "MAR_STATE"
 #define marCCDStatusString             "MAR_STATUS"
@@ -190,6 +191,7 @@ protected:
     int marCCDTiffTimeout;
     int marCCDSeriesFileTemplate;
     int marCCDSeriesFileDigits;
+    int marCCDSeriesFileFirst;
     int marCCDOverlap;
     int marCCDState;
     int marCCDStatus;
@@ -1087,6 +1089,7 @@ void marCCD::collectSeries()
     int shutterMode, useShutter;
     char seriesFileTemplate[MAX_FILENAME_LEN];
     int seriesFileDigits;
+    int seriesFileFirst;
     char filePath[MAX_FILENAME_LEN];
     char fileName[MAX_FILENAME_LEN];
     char baseFileName[MAX_FILENAME_LEN];
@@ -1094,17 +1097,10 @@ void marCCD::collectSeries()
     char fullFileTemplate[MAX_FILENAME_LEN];
     const char *fileSuffix = ".tif";
     int fileNumber;
-    int firstFileNumber = 1;
     static const char *functionName = "collectSeries";
 
     /* Get current values of some parameters */
     getIntegerParam(ADFrameType, &frameType);
-    if (frameType != marCCDFrameNormal) {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s:%s: error, frame type must be Normal\n",
-            driverName, functionName);
-        return;
-    }
     getIntegerParam(ADImageMode,      &imageMode);
     getIntegerParam(ADAcquire,        &acquire);
     getIntegerParam(NDAutoIncrement,  &autoIncrement);
@@ -1120,10 +1116,18 @@ void marCCD::collectSeries()
     getIntegerParam(NDFileNumber,     &fileNumber);
     getStringParam( marCCDSeriesFileTemplate, sizeof(seriesFileTemplate), seriesFileTemplate);
     getIntegerParam(marCCDSeriesFileDigits, &seriesFileDigits);
+    getIntegerParam(marCCDSeriesFileFirst,  &seriesFileFirst);
     getIntegerParam(marCCDOverlap,    &overlap);
 
     if (shutterMode == ADShutterModeNone) useShutter=0; else useShutter=1;
     
+    if (frameType != marCCDFrameNormal) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s:%s: error, frame type must be Normal\n",
+            driverName, functionName);
+        goto done;
+    }
+
     // Create the base file name
     len = epicsSnprintf(baseFileName, sizeof(baseFileName), seriesFileTemplate, 
                        filePath, fileName, fileNumber);
@@ -1133,8 +1137,8 @@ void marCCD::collectSeries()
             driverName, functionName);
         return;
     }
-    len = epicsSnprintf(fullFileTemplate, sizeof(fullFileTemplate), "%s%%%d.%dd.tif",
-                        seriesFileTemplate, seriesFileDigits, seriesFileDigits); 
+    len = epicsSnprintf(fullFileTemplate, sizeof(fullFileTemplate), "%%s%%%d.%dd.tif",
+                        seriesFileDigits, seriesFileDigits); 
     if (len < 0) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
             "%s:%s: error creating file template\n",
@@ -1163,12 +1167,12 @@ void marCCD::collectSeries()
             if (triggerMode == marCCDTriggerTimed) {
                 epicsSnprintf(this->toServer, sizeof(this->toServer), 
                     "start_series_triggered,%f,%d,%d,%s,%s,%d", 
-                    acquireTime, numImages, firstFileNumber, 
+                    acquireTime, numImages, seriesFileFirst, 
                     baseFileName, fileSuffix, seriesFileDigits);
             } else {
                 epicsSnprintf(this->toServer, sizeof(this->toServer), 
                     "start_series_triggered,%d,%d,%d,%s,%s,%d", 
-                    itemp, numImages, firstFileNumber, 
+                    itemp, numImages, seriesFileFirst, 
                     baseFileName, fileSuffix, seriesFileDigits);
             }
             writeServer(this->toServer);
@@ -1176,7 +1180,7 @@ void marCCD::collectSeries()
         case marCCDImageSeriesTimed:
             epicsSnprintf(this->toServer, sizeof(this->toServer), 
                 "start_series_timed,%d,%d,%f,%f,%s,%s,%d", 
-                numImages, firstFileNumber, acquireTime, acquirePeriod, 
+                numImages, seriesFileFirst, acquireTime, acquirePeriod, 
                 baseFileName, fileSuffix, seriesFileDigits);
             writeServer(this->toServer);
             break;
@@ -1190,7 +1194,7 @@ void marCCD::collectSeries()
     for (i=0; i<numImages; i++) {
         // Create the full file name
         len = epicsSnprintf(fullFileName, sizeof(fullFileName), fullFileTemplate, 
-                            filePath, fileName, fileNumber, i+firstFileNumber);
+                            baseFileName, i+seriesFileFirst);
         setStringParam(NDFullFileName, fullFileName);
         callParamCallbacks();
         status = getImageData();
@@ -1208,7 +1212,8 @@ void marCCD::collectSeries()
         /* Call the callbacks to update any changes */
         callParamCallbacks();
     }
-     
+
+done:     
     /* Restore the TIFF timeout */
     setDoubleParam(marCCDTiffTimeout, tiffTimeout);
         
