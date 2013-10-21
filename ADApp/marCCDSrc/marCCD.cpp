@@ -1466,6 +1466,7 @@ marCCD::marCCD(const char *portName, const char *serverPort,
     createParam(marCCDTiffTimeoutString,       asynParamFloat64, &marCCDTiffTimeout);
     createParam(marCCDSeriesFileTemplateString,asynParamOctet,   &marCCDSeriesFileTemplate);
     createParam(marCCDSeriesFileDigitsString,  asynParamInt32,   &marCCDSeriesFileDigits);
+    createParam(marCCDSeriesFileFirstString,   asynParamInt32,   &marCCDSeriesFileFirst);
     createParam(marCCDOverlapString,           asynParamInt32,   &marCCDOverlap);
     createParam(marCCDStateString,             asynParamInt32,   &marCCDState);
     createParam(marCCDStatusString,            asynParamInt32,   &marCCDStatus);
