@@ -20,7 +20,7 @@ asynOctetSetOutputEos("marServer", 0, "\n")
 #asynSetTraceMask("marServer",0,255)
 asynSetTraceIOMask("marServer",0,2)
 
-marCCDConfig("$(PORT)", "marServer", 20, 200000000)
+marCCDConfig("$(PORT)", "marServer", 0, 0)
 dbLoadRecords("$(ADCORE)/db/ADBase.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
 dbLoadRecords("$(ADCORE)/db/NDFile.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1")
 dbLoadRecords("$(ADMARCCD)/db/marCCD.template","P=$(PREFIX),R=cam1:,PORT=$(PORT),ADDR=0,TIMEOUT=1,MARSERVER_PORT=marServer")
@@ -41,4 +41,4 @@ set_requestfile_path("$(ADMARCCD)/marCCDApp/Db")
 iocInit()
 
 # save things every thirty seconds
-create_monitor_set("auto_settings.req", 30,"P=$(PREFIX),D=cam1:")
+create_monitor_set("auto_settings.req", 30,"P=$(PREFIX)")
