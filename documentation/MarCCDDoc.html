@@ -204,8 +204,8 @@ remote_mode_server_arguments 2222
     </tbody>
   </table>
   <p>
-    It is useful to use NDPluginROI to define an ROI containing the entire marccd detector.
-    The MaxValue_RBV PV in this ROI can be monitored to make sure that the 16-bit limit
+    It is useful to use an NDPluginStats plugin set to use the entire marCCD detector.
+    The MaxValue_RBV PV can be monitored to make sure that the 16-bit limit
     of 65,535 is not being approached in any pixel.
   </p>
   <h2 id="Driver_parameters" style="text-align: left">
@@ -252,7 +252,8 @@ remote_mode_server_arguments 2222
         <td>
           r/o</td>
         <td>
-          The version number of the server software running on the detector.</td>
+          The version number of the server software running on the detector.  This is 1 for the
+          servers running on non-HS detectors, and 2 for the servers running on HS detectors.</td>
         <td>
           MAR_SERVER_MODE</td>
         <td>
@@ -427,8 +428,8 @@ remote_mode_server_arguments 2222
           to disk. This improves performance because the next image can begin as soon as ADAcquire
           goes to done, and hence before the previous image is written to disk. Note, however
           that this parameter must be set to 0 (Sequential) if callbacks are being used to
-          compute ROIs that are being used in data collection, e.g. in a scan. If this is
-          not done then the ROI information will be grabbed before it is updated and incorrect
+          compute statistics that are being used in data collection, e.g. in a scan. If this is
+          not done then the statistics information will be grabbed before it is updated and incorrect
           scan data will result.</td>
         <td>
           MAR_OVERLAP</td>
@@ -556,8 +557,7 @@ remote_mode_server_arguments 2222
         <td>
           r/w</td>
         <td>
-          The gating mode for the detector.  This is only available for the HS series detectors
-          with ServerMode=2.  Choices are: <br />
+          The gating mode for the detector. Choices are: <br />
           "None" <br />
           "Gated"
           </td>
@@ -581,8 +581,7 @@ remote_mode_server_arguments 2222
         <td>
           r/w</td>
         <td>
-          The readout mode for the detector.  This is only available for the HS series detectors
-          with ServerMode=2.  Choices are: <br />
+          The readout mode for the detector. Choices are: <br />
           "Standard" <br />
           "High gain" <br /> 
           "Low noise" <br />
