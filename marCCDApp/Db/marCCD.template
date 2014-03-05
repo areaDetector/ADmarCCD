@@ -68,7 +68,6 @@ record(mbbo, "$(P)$(R)GateMode")
    field(VAL,  "0")
 }
 
-# Note, the enum string
 record(mbbi, "$(P)$(R)GateMode_RBV")
 {
    field(DTYP, "asynInt32")
