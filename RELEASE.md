@@ -27,9 +27,11 @@ R2-0
 ----
 * Moved the repository to [Github](https://github.com/areaDetector/ADmarCCD).
 * Re-organized the directory structure to separate the driver library from the example IOC application.
-* Added support for the triggered acquisition modes available on the new high-speed (-HS series) 
-  detectors from Rayonix.  
-  This includes the following new records:
+* Added support for the features available on the new high-speed (-HS series) 
+  detectors from Rayonix using Version 2 of their server protocol.  These features include
+  gating, high-speed series acquisition with either external trigger or internal clock, and support
+  for different readout modes.
+  Added the following new records:
     - GateMode
     - ReadoutMode
     - ServerMode_RBV
