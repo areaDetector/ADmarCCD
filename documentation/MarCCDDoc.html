@@ -10,7 +10,7 @@
     <h1>
       areaDetector MarCCD driver</h1>
     <h2>
-      October 1, 2012</h2>
+      March 4, 2014</h2>
     <h2>
       Mark Rivers</h2>
     <h2>
@@ -37,12 +37,13 @@
   </p>
   <p>
     The interface to the detector is via a TCP/IP socket interface to the <b>marccd_server_socket</b>
-    server that MarUSA provides. The marccd_server_socket program must be started before
+    server that Rayonix provides. The marccd_server_socket program must be started before
     the areaDetector software is started, by running the marccd program and executing
     Acquire/Remote Control/Start.
   </p>
   <p>
-    marccd must be using Version 1 of the remote protocol. This is normally done done
+    marccd must be using Version 1 (for non-HS detectors) or 2 (for HS detectors) of the remote protocol. 
+    This is normally done done
     by editing the file marccd/configuration/marccd.conf and replacing the line</p>
   <pre>include marccd_server_v0.conf
     </pre>
@@ -112,6 +113,42 @@ remote_mode_server_arguments 2222
             <li>DblCorrelation (two images each collected for half the nominal acquisition time,
               zingers removed by double correlation)</li>
           </ul>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          ADImageMode</td>
+        <td>
+          $(P)$(R)ImageMode</td>
+        <td>
+          The driver redefines the choices for the ADImageMode parameter (record $(P)$(R)ImageMode)
+          from ADDriver.h.
+          <ul>
+            <li>"Single" (aingle frame acquisition)</li>
+            <li>"Multiple" (acquire ADNumImages images)</li>
+            <li>"Continuous" (acquire images continuously until ADAcquire is set to 0)</li>
+            <li>"Series triggered" (acquire a series of images using an external trigger signal)</li>
+            <li>"Series timed" (acquire a series of images using the internal clock)</li>
+          </ul>
+          "Series triggered" and "Series timed" are only supported for ServerMode=2 servers.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          ADTriggerMode</td>
+        <td>
+          $(P)$(R)TriggerMode</td>
+        <td>
+          The driver redefines the choices for the ADTriggerMode parameter (record $(P)$(R)TriggerMode)
+          from ADDriver.h.
+          <ul>
+            <li>Internal (Single frame acquisition)</li>
+            <li>Frame (rising edge causes frame transfer/readout and start of next acquisition)</li>
+            <li>Bulb (rising edge of trigger starts acquisition, falling edge causes frame transfer/readout)</li>
+            <li>Timed (rising edge of trigger causes frame transfer/readout and each exposure lasts for time
+                ADAcquireTime)</li>
+          </ul>
+          ServerMode=1 servers only support "Internal", ServerMode=2 servers support all 4 modes.
         </td>
       </tr>
       <tr>
@@ -209,6 +246,23 @@ remote_mode_server_arguments 2222
       <tr>
         <td>
           marCCD<br />
+          ServerMode</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/o</td>
+        <td>
+          The version number of the server software running on the detector.</td>
+        <td>
+          MAR_SERVER_MODE</td>
+        <td>
+          $(P)$(R)ServerMode_RBV</td>
+        <td>
+          longin</td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
           State</td>
         <td>
           asynInt32</td>
@@ -217,8 +271,8 @@ remote_mode_server_arguments 2222
         <td>
           State word returned by marccd server. The low-order 4-bits of this word are the
           state of the marccd server, and will be Idle (0x0), Error (0x7), or Busy (0x8).
-          The next 20 bits encode the state of the 5 server tasks (Acquire, Readout, Correct,
-          Save, Dezinger) with 4-bits per task. Each task can be in the state Idle (0x0),
+          The next 24 bits encode the state of the 6 server tasks (Acquire, Readout, Correct,
+          Save, Dezinger, Series) with 4-bits per task. Each task can be in the state Idle (0x0),
           Queued (0x1), Executing (0x2), Error (0x4), or Reserved (0x8).</td>
         <td>
           MAR_STATE</td>
@@ -335,6 +389,24 @@ remote_mode_server_arguments 2222
           mbbi</td>
       </tr>
       <tr>
+        <td>
+          marCCDTask<br />
+          SeriesStatus</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/o</td>
+        <td>
+          Status of the marccd server series acquisition task (Idle, Queued, Executing, Error, or Reserved).
+        </td>
+        <td>
+          MAR_SERIES_STATUS</td>
+        <td>
+          $(P)$(R)MarSeriesStatus_RBV</td>
+        <td>
+          mbbi</td>
+      </tr>
+      <tr>
         <td align="center" colspan="7">
           <b>Optimization parameters</b></td>
       </tr>
@@ -399,6 +471,132 @@ remote_mode_server_arguments 2222
           longout
           <br />
           longin</td>
+      </tr>
+      <tr>
+        <td align="center" colspan="7">
+          <b>Series acquisition parameters (ServerMode=2 only)</b></td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
+          SeriesFileTemplate</td>
+        <td>
+          asynOctet</td>
+        <td>
+          r/w</td>
+        <td>
+          The template for the file names written in trigger or timed series acquisition modes.
+          The FilePath, FileName and FileNumber are combined into a string using this
+          C format string.  This is used to construct a base file name.
+          The actual file names in the series are constructed using this base file name plus
+          the SeriesFileFirst and SeriesFileDigits records. Example: "%s%s_%3.3d"</td>
+        <td>
+          MAR_SERIES_FILE_TEMPLATE</td>
+        <td>
+          $(P)$(R)SeriesFileTemplate
+          <br />
+          $(P)$(R)SeriesFileTemplate_RBV</td>
+        <td>
+          waveform
+          <br />
+          waveform</td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
+          SeriesFileFirst</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/w</td>
+        <td>
+          The number of the first file in a triggered or timed series acquisition.</td>
+        <td>
+          MAR_SERIES_FILE_FIRST</td>
+        <td>
+          $(P)$(R)SeriesFileFirst
+          <br />
+          $(P)$(R)SeriesFileFirst_RBV</td>
+        <td>
+          longout
+          <br />
+          longin</td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
+          SeriesFileDigits</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/w</td>
+        <td>
+          The number of digits to use for the file numbers in triggered or timed series acquisition.</td>
+        <td>
+          MAR_SERIES_FILE_DIGITS</td>
+        <td>
+          $(P)$(R)SeriesFileDigits
+          <br />
+          $(P)$(R)SeriesFileDigits_RBV</td>
+        <td>
+          longout
+          <br />
+          longin</td>
+      </tr>
+      <tr>
+        <td align="center" colspan="7">
+          <b>Gating and readout parameters (ServerMode=2 only)</b></td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
+          GateMode</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/w</td>
+        <td>
+          The gating mode for the detector.  This is only available for the HS series detectors
+          with ServerMode=2.  Choices are: <br />
+          "None" <br />
+          "Gated"
+          </td>
+        <td>
+          MAR_GATE_MODE</td>
+        <td>
+          $(P)$(R)GateMode
+          <br />
+          $(P)$(R)GateMode_RBV</td>
+        <td>
+          mbbo
+          <br />
+          mbbi</td>
+      </tr>
+      <tr>
+        <td>
+          marCCD<br />
+          ReadoutMode</td>
+        <td>
+          asynInt32</td>
+        <td>
+          r/w</td>
+        <td>
+          The readout mode for the detector.  This is only available for the HS series detectors
+          with ServerMode=2.  Choices are: <br />
+          "Standard" <br />
+          "High gain" <br /> 
+          "Low noise" <br />
+          "HDR" (High Dynamic Range)</td>
+        <td>
+          MAR_GATE_MODE</td>
+        <td>
+          $(P)$(R)GateMode
+          <br />
+          $(P)$(R)GateMode_RBV</td>
+        <td>
+          mbbo
+          <br />
+          mbbi</td>
       </tr>
       <tr>
         <td align="center" colspan="7">
@@ -696,7 +894,6 @@ remote_mode_server_arguments 2222
     they are not supported in the marccd program:</p>
   <ul>
     <li>Number of exposures per image (ADNumExposures)</li>
-    <li>Trigger mode (ADTriggerMode)</li>
     <li>Gain (ADGain)</li>
     <li>Region to read out (ADMinX, ADMinY, ADSizeX, ADSizeY, ADReverseX, ADReverseY)</li>
     <li>Data type (NDDataType)</li>
