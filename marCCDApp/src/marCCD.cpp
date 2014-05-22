@@ -785,8 +785,6 @@ void marCCD::acquireFrame(double exposureTime, int useShutter)
         status = epicsEventWaitWithTimeout(this->stopEventId, MARCCD_POLL_DELAY);
         this->lock();
         if (status == epicsEventWaitOK) {
-            /* The acquisition was stopped before the time was complete */
-            if (triggerMode == ADTriggerInternal) epicsTimerCancel(this->timerId);
             break;
         }
         epicsTimeGetCurrent(&currentTime);
@@ -1002,7 +1000,11 @@ void marCCD::collectNormal()
             break;
         case marCCDFrameDoubleCorrelation:
             acquireFrame(acquireTime/2., useShutter);
-            readoutFrame(2, NULL, 1);
+            status = readoutFrame(2, NULL, 1);
+            if (status) goto cleanup;
+            /* If the user has aborted then acquire will be 0 */
+            getIntegerParam(ADAcquire, &acquire);
+            if (acquire == 0) goto cleanup;
             acquireFrame(acquireTime/2., useShutter);
             status = readoutFrame(0, NULL, 1);
             if (status) goto cleanup;
@@ -1249,15 +1251,17 @@ asynStatus marCCD::writeInt32(asynUser *pasynUser, epicsInt32 value)
     if (function == ADAcquire) {
         state = getState();
         if (value && (!TEST_TASK_STATUS(state, TASK_ACQUIRE, TASK_STATUS_QUEUED | TASK_STATUS_EXECUTING))) {
+            /* Kill any stale stop event */
+            epicsEventTryWait(this->stopEventId);
             /* Send an event to wake up the marCCD task.  */
             epicsEventSignal(this->startEventId);
         } 
         if (!value) {
-            /* Send an abort command to be safe */
-            writeServer("abort");
             if (acquiring) {
                 /* Send signal to stop acquisition */
                 epicsEventSignal(this->stopEventId);
+                /* The acquisition was stopped before the time was complete, cancel any acquisition timer */
+                epicsTimerCancel(this->timerId);
             }
         }
     } else if ((function == ADBinX) ||
