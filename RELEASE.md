@@ -24,8 +24,10 @@ Release Notes
 =============
 
 R2-1 (18-April-2015)
+----
 * Fixed problems stopping acquisition in normal and double-correlation modes. 
 * Changes for compatibility with ADCore R2-2.
+
 
 R2-0 (20-March-2014)
 ----
