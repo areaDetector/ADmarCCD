@@ -2,6 +2,8 @@
 # Mark Rivers
 # October 31, 2008
 
+include "ADBase.template"
+include "NDFile.template"
 
 ###################################################
 # These are records we change from ADBase.template
