@@ -23,6 +23,11 @@ files respectively, in the configure/ directory of the appropriate release of th
 Release Notes
 =============
 
+R2-2 (XXX-January-2017)
+----
+* Updated medm screen for larger version of ADSetup in ADCore R2-6
+
+
 R2-1 (18-April-2015)
 ----
 * Fixed problems stopping acquisition in normal and double-correlation modes. 
