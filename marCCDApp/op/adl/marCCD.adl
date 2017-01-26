@@ -1,14 +1,14 @@
 
 file {
-	name="/home/epics/devel-AD2.0/areaDetector-2-0/ADmarCCD/marCCDApp/op/adl/marCCD.adl"
-	version=030107
+	name="/home/epics/support/areaDetector-2-6/ADmarCCD/marCCDApp/op/adl/marCCD.adl"
+	version=030109
 }
 display {
 	object {
 		x=27
 		y=59
 		width=1410
-		height=665
+		height=755
 	}
 	clr=14
 	bclr=4
@@ -92,7 +92,7 @@ composite {
 		x=5
 		y=35
 		width=350
-		height=215
+		height=340
 	}
 	"composite name"=""
 	"composite file"="ADSetup.adl"
@@ -110,7 +110,7 @@ composite {
 composite {
 	object {
 		x=5
-		y=255
+		y=380
 		width=350
 		height=80
 	}
@@ -126,445 +126,6 @@ composite {
 	}
 	"composite name"=""
 	"composite file"="ADAttrFile.adl"
-}
-rectangle {
-	object {
-		x=127
-		y=342
-		width=107
-		height=21
-	}
-	"basic attribute" {
-		clr=2
-	}
-}
-rectangle {
-	object {
-		x=5
-		y=340
-		width=350
-		height=280
-	}
-	"basic attribute" {
-		clr=14
-		fill="outline"
-	}
-}
-text {
-	object {
-		x=101
-		y=343
-		width=159
-		height=20
-	}
-	"basic attribute" {
-		clr=54
-	}
-	textix="Readout"
-	align="horiz. centered"
-}
-text {
-	object {
-		x=179
-		y=370
-		width=10
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="X"
-	align="horiz. right"
-}
-text {
-	object {
-		x=272
-		y=370
-		width=10
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Y"
-	align="horiz. right"
-}
-composite {
-	object {
-		x=34
-		y=518
-		width=274
-		height=20
-	}
-	"composite name"=""
-	children {
-		text {
-			object {
-				x=34
-				y=518
-				width=110
-				height=20
-			}
-			"basic attribute" {
-				clr=14
-			}
-			textix="Frame shift"
-			align="horiz. right"
-		}
-		"text entry" {
-			object {
-				x=154
-				y=518
-				width=60
-				height=20
-			}
-			control {
-				chan="$(P)$(R)FrameShift"
-				clr=14
-				bclr=51
-			}
-			limits {
-			}
-		}
-		"text update" {
-			object {
-				x=247
-				y=519
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)FrameShift_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-	}
-}
-composite {
-	object {
-		x=41
-		y=493
-		width=268
-		height=20
-	}
-	"composite name"=""
-	children {
-		text {
-			object {
-				x=41
-				y=493
-				width=180
-				height=20
-			}
-			"basic attribute" {
-				clr=14
-			}
-			textix="Image Size (bytes)"
-			align="horiz. right"
-		}
-		"text update" {
-			object {
-				x=248
-				y=494
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)ArraySize_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-	}
-}
-composite {
-	object {
-		x=44
-		y=468
-		width=265
-		height=20
-	}
-	"composite name"=""
-	children {
-		text {
-			object {
-				x=44
-				y=468
-				width=100
-				height=20
-			}
-			"basic attribute" {
-				clr=14
-			}
-			textix="Image Size"
-			align="horiz. right"
-		}
-		"text update" {
-			object {
-				x=155
-				y=469
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)ArraySizeX_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-		"text update" {
-			object {
-				x=248
-				y=469
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)ArraySizeY_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-	}
-}
-composite {
-	object {
-		x=74
-		y=443
-		width=233
-		height=20
-	}
-	"composite name"=""
-	children {
-		"text entry" {
-			object {
-				x=154
-				y=443
-				width=60
-				height=20
-			}
-			control {
-				chan="$(P)$(R)BinX"
-				clr=14
-				bclr=51
-			}
-			limits {
-			}
-		}
-		"text entry" {
-			object {
-				x=247
-				y=443
-				width=60
-				height=20
-			}
-			control {
-				chan="$(P)$(R)BinY"
-				clr=14
-				bclr=51
-			}
-			limits {
-			}
-		}
-		text {
-			object {
-				x=74
-				y=443
-				width=70
-				height=20
-			}
-			"basic attribute" {
-				clr=14
-			}
-			textix="Binning"
-			align="horiz. right"
-		}
-	}
-}
-composite {
-	object {
-		x=154
-		y=420
-		width=154
-		height=18
-	}
-	"composite name"=""
-	children {
-		"text update" {
-			object {
-				x=154
-				y=420
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)BinX_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-		"text update" {
-			object {
-				x=247
-				y=420
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)BinY_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-	}
-}
-composite {
-	object {
-		x=14
-		y=395
-		width=294
-		height=20
-	}
-	"composite name"=""
-	children {
-		text {
-			object {
-				x=14
-				y=395
-				width=130
-				height=20
-			}
-			"basic attribute" {
-				clr=14
-			}
-			textix="Detector Size"
-			align="horiz. right"
-		}
-		"text update" {
-			object {
-				x=154
-				y=396
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)MaxSizeX_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-		"text update" {
-			object {
-				x=247
-				y=396
-				width=61
-				height=18
-			}
-			monitor {
-				chan="$(P)$(R)MaxSizeY_RBV"
-				clr=54
-				bclr=4
-			}
-			align="horiz. centered"
-			limits {
-			}
-		}
-	}
-}
-text {
-	object {
-		x=34
-		y=543
-		width=110
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Stability"
-	align="horiz. right"
-}
-"text entry" {
-	object {
-		x=154
-		y=543
-		width=60
-		height=20
-	}
-	control {
-		chan="$(P)$(R)Stability"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text update" {
-	object {
-		x=247
-		y=544
-		width=61
-		height=18
-	}
-	monitor {
-		chan="$(P)$(R)Stability_RBV"
-		clr=54
-		bclr=4
-	}
-	align="horiz. centered"
-	limits {
-	}
-}
-text {
-	object {
-		x=44
-		y=568
-		width=100
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Server mode"
-	align="horiz. right"
-}
-"text update" {
-	object {
-		x=155
-		y=569
-		width=61
-		height=18
-	}
-	monitor {
-		chan="$(P)$(R)ServerMode_RBV"
-		clr=54
-		bclr=4
-	}
-	align="horiz. centered"
-	limits {
-	}
 }
 rectangle {
 	object {
@@ -2499,6 +2060,456 @@ composite {
 				bclr=4
 			}
 			format="string"
+			limits {
+			}
+		}
+	}
+}
+composite {
+	object {
+		x=5
+		y=465
+		width=350
+		height=280
+	}
+	"composite name"=""
+	children {
+		rectangle {
+			object {
+				x=127
+				y=467
+				width=107
+				height=21
+			}
+			"basic attribute" {
+				clr=2
+			}
+		}
+		rectangle {
+			object {
+				x=5
+				y=465
+				width=350
+				height=280
+			}
+			"basic attribute" {
+				clr=14
+				fill="outline"
+			}
+		}
+		text {
+			object {
+				x=101
+				y=468
+				width=159
+				height=20
+			}
+			"basic attribute" {
+				clr=54
+			}
+			textix="Readout"
+			align="horiz. centered"
+		}
+		text {
+			object {
+				x=179
+				y=495
+				width=10
+				height=20
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="X"
+			align="horiz. right"
+		}
+		text {
+			object {
+				x=272
+				y=495
+				width=10
+				height=20
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Y"
+			align="horiz. right"
+		}
+		composite {
+			object {
+				x=34
+				y=643
+				width=274
+				height=20
+			}
+			"composite name"=""
+			children {
+				text {
+					object {
+						x=34
+						y=643
+						width=110
+						height=20
+					}
+					"basic attribute" {
+						clr=14
+					}
+					textix="Frame shift"
+					align="horiz. right"
+				}
+				"text entry" {
+					object {
+						x=154
+						y=643
+						width=60
+						height=20
+					}
+					control {
+						chan="$(P)$(R)FrameShift"
+						clr=14
+						bclr=51
+					}
+					limits {
+					}
+				}
+				"text update" {
+					object {
+						x=247
+						y=644
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)FrameShift_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+			}
+		}
+		composite {
+			object {
+				x=41
+				y=618
+				width=268
+				height=20
+			}
+			"composite name"=""
+			children {
+				text {
+					object {
+						x=41
+						y=618
+						width=180
+						height=20
+					}
+					"basic attribute" {
+						clr=14
+					}
+					textix="Image Size (bytes)"
+					align="horiz. right"
+				}
+				"text update" {
+					object {
+						x=248
+						y=619
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)ArraySize_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+			}
+		}
+		composite {
+			object {
+				x=44
+				y=593
+				width=265
+				height=20
+			}
+			"composite name"=""
+			children {
+				text {
+					object {
+						x=44
+						y=593
+						width=100
+						height=20
+					}
+					"basic attribute" {
+						clr=14
+					}
+					textix="Image Size"
+					align="horiz. right"
+				}
+				"text update" {
+					object {
+						x=155
+						y=594
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)ArraySizeX_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+				"text update" {
+					object {
+						x=248
+						y=594
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)ArraySizeY_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+			}
+		}
+		composite {
+			object {
+				x=74
+				y=568
+				width=233
+				height=20
+			}
+			"composite name"=""
+			children {
+				"text entry" {
+					object {
+						x=154
+						y=568
+						width=60
+						height=20
+					}
+					control {
+						chan="$(P)$(R)BinX"
+						clr=14
+						bclr=51
+					}
+					limits {
+					}
+				}
+				"text entry" {
+					object {
+						x=247
+						y=568
+						width=60
+						height=20
+					}
+					control {
+						chan="$(P)$(R)BinY"
+						clr=14
+						bclr=51
+					}
+					limits {
+					}
+				}
+				text {
+					object {
+						x=74
+						y=568
+						width=70
+						height=20
+					}
+					"basic attribute" {
+						clr=14
+					}
+					textix="Binning"
+					align="horiz. right"
+				}
+			}
+		}
+		composite {
+			object {
+				x=154
+				y=545
+				width=154
+				height=18
+			}
+			"composite name"=""
+			children {
+				"text update" {
+					object {
+						x=154
+						y=545
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)BinX_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+				"text update" {
+					object {
+						x=247
+						y=545
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)BinY_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+			}
+		}
+		composite {
+			object {
+				x=14
+				y=520
+				width=294
+				height=20
+			}
+			"composite name"=""
+			children {
+				text {
+					object {
+						x=14
+						y=520
+						width=130
+						height=20
+					}
+					"basic attribute" {
+						clr=14
+					}
+					textix="Detector Size"
+					align="horiz. right"
+				}
+				"text update" {
+					object {
+						x=154
+						y=521
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)MaxSizeX_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+				"text update" {
+					object {
+						x=247
+						y=521
+						width=61
+						height=18
+					}
+					monitor {
+						chan="$(P)$(R)MaxSizeY_RBV"
+						clr=54
+						bclr=4
+					}
+					align="horiz. centered"
+					limits {
+					}
+				}
+			}
+		}
+		text {
+			object {
+				x=34
+				y=668
+				width=110
+				height=20
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Stability"
+			align="horiz. right"
+		}
+		"text entry" {
+			object {
+				x=154
+				y=668
+				width=60
+				height=20
+			}
+			control {
+				chan="$(P)$(R)Stability"
+				clr=14
+				bclr=51
+			}
+			limits {
+			}
+		}
+		"text update" {
+			object {
+				x=247
+				y=669
+				width=61
+				height=18
+			}
+			monitor {
+				chan="$(P)$(R)Stability_RBV"
+				clr=54
+				bclr=4
+			}
+			align="horiz. centered"
+			limits {
+			}
+		}
+		text {
+			object {
+				x=44
+				y=693
+				width=100
+				height=20
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Server mode"
+			align="horiz. right"
+		}
+		"text update" {
+			object {
+				x=155
+				y=694
+				width=61
+				height=18
+			}
+			monitor {
+				chan="$(P)$(R)ServerMode_RBV"
+				clr=54
+				bclr=4
+			}
+			align="horiz. centered"
 			limits {
 			}
 		}
