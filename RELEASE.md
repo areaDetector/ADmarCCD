@@ -23,6 +23,15 @@ files respectively, in the configure/ directory of the appropriate release of th
 Release Notes
 =============
 
+R2-3 (2-July-2018)
+----
+* Added support for new PVs in ADCore R3-3 in opi files (NumQueuedArrays, etc.)
+* Added ADBuffers.adl to main medm screen.
+* Changed configure/RELEASE files for compatibility with areaDetector R3-3.
+* Improved op/*/autoconvert/* files with better medm files and better converters.
+* Added NDDriverVersion information.
+
+
 R2-2 (21-February-2017)
 ----
 * Updated medm screen for larger version of ADSetup in ADCore R2-6
