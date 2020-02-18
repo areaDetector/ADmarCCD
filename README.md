@@ -2,7 +2,7 @@ ADmarCCD
 ========
 An 
 [EPICS](http://www.aps.anl.gov/epics/) 
-[areaDetector](https://cars.uchicago.edu/software/epics/areaDetector.html) 
+[areaDetector](https://github.com/areaDetector/areaDetector/blob/master/README.md) 
 driver for the Rayonix (formerly MarCCD) detectors from 
 [Rayonix/MarUSA](http://www.mar-usa.com/).
 
