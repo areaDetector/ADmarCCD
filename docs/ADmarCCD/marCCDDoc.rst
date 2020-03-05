@@ -392,10 +392,15 @@ in the documentation for the constructor for the
 
 Example st.cmd startup file
 ---------------------------
-The following startup script is provided with ADPerkinElmer.
 
-.. literalinclude:: ../../../ADmarCCD/iocs/marCCDIOC/iocBoot/iocMARCCD/st.cmd
+.. toctree::
+   :hidden:
+   
+   st_cmd.rst
 
+There is an example IOC boot directory and startup script
+:ref:`st.cmd <ADmarCCD_st_cmd_example>` provided with
+areaDetector.
 
 MEDM screens
 ------------
