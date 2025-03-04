@@ -126,11 +126,13 @@ typedef enum {
     marCCDReadoutStandard,
     marCCDReadoutHighGain,
     marCCDReadoutLowNoise,
-    marCCDReadoutHDR
+    marCCDReadoutHDR,
+    marCCDReadoutTurbo,
+    marCCDReadoutHDR16
 } marCCDReadoutMode;
 static const char *readoutModeStrings[] = 
-    {"Standard", "High gain", "Low noise", "HDR"};
-static const int numReadoutModes[] = {0, 0, 4};
+    {"Standard", "High gain", "Low noise", "HDR", "Turbo", "HDR16"};
+static const int numReadoutModes[] = {0, 0, 6};
 
 #define marCCDGateModeString           "MAR_GATE_MODE"
 #define marCCDReadoutModeString        "MAR_READOUT_MODE"
@@ -358,6 +360,7 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
     TIFF *tiff=NULL;
     epicsUInt32 uval;
     double timeout;
+    double timeDiff;
 
     getDoubleParam(marCCDTiffTimeout, &timeout);
     deltaTime = 0.;
@@ -384,7 +387,15 @@ asynStatus marCCD::readTiff(const char *fileName, NDArray *pImage)
             }
             /* We allow up to 10 second clock skew between time on machine running this IOC
              * and the machine with the file system returning modification time */
-            if (difftime(statBuff.st_mtime, startTime) > -10) break;
+            timeDiff = difftime(statBuff.st_mtime, startTime);
+            if (timeDiff > -10) break;
+            char t_start[80], t_file[80];
+            strftime(t_start, 80, "%c", localtime(&startTime));
+            strftime(t_file, 80, "%c", localtime(&statBuff.st_mtime));
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_WARNING,
+                "%s::%s startTime=%s, file time=%s, difference = %f\n",
+                driverName, functionName, 
+                t_start, t_file, timeDiff);
             close(fd);
             fd = -1;
         }
@@ -1162,6 +1173,9 @@ void marCCD::collectSeries()
                     break;
                 case marCCDTriggerBulb:
                     itemp = 1;
+                    break;
+                default:
+                    itemp = 0;
                     break;
             }
             if (triggerMode == marCCDTriggerTimed) {
